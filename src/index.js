@@ -313,13 +313,16 @@ app.get('/admin', (req, res) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Canvas not supported');
 
-        // Cover + center crop to exactly 1080x1440 without distortion
-        const scale = Math.max(TARGET_W / img.width, TARGET_H / img.height);
-        const sw = TARGET_W / scale;
-        const sh = TARGET_H / scale;
-        const sx = (img.width - sw) / 2;
-        const sy = (img.height - sh) / 2;
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);
+        // Contain (no crop): fit inside 1080x1440 and pad the rest
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, TARGET_W, TARGET_H);
+
+        const scale = Math.min(TARGET_W / img.width, TARGET_H / img.height);
+        const dw = Math.round(img.width * scale);
+        const dh = Math.round(img.height * scale);
+        const dx = Math.round((TARGET_W - dw) / 2);
+        const dy = Math.round((TARGET_H - dh) / 2);
+        ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dw, dh);
 
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
         if (!blob) throw new Error('Failed to encode image');
