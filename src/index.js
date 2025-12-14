@@ -12,6 +12,11 @@ app.disable('x-powered-by')
 app.use(cors())
 app.use(express.json({ limit: '1mb' }))
 
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  return res.status(200).send('OK')
+})
+
 app.get('/health', (req, res) => {
   return res.json({ ok: true })
 })
