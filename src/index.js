@@ -24,7 +24,7 @@ app.get('/admin', (req, res) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Shortener Admin</title>
+  <title>SADDAM Shortlink</title>
   <style>
     :root { color-scheme: light dark; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
@@ -48,7 +48,7 @@ app.get('/admin', (req, res) => {
 </head>
 <body>
   <div class="wrap">
-    <h1>Shortener Admin</h1>
+    <h1>SADDAM Shortlink</h1>
 
     <div class="card">
       <div class="row">
