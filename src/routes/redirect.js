@@ -122,6 +122,11 @@ function isInAppBrowser(req) {
   return /(FBAN|FBAV|Instagram|Line\b|TikTok|Twitter|LinkedInApp|Pinterest|Snapchat)/i.test(ua)
 }
 
+function shouldForceAppOpenInInAppBrowser() {
+  const v = String(process.env.FORCE_SHOPEE_APP_OPEN_INAPP || '').toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes'
+}
+
 redirectRouter.get('/_fallback/android', (req, res) => {
   return res.redirect(302, getAndroidFallbackUrl())
 })
@@ -241,7 +246,7 @@ redirectRouter.get('/:slug', async (req, res) => {
 
     // In-app browsers (Facebook/Instagram/etc.) may show a permission dialog when we attempt
     // to open external apps. For these UAs, do a plain web redirect.
-    if (isInAppBrowser(req)) {
+    if (isInAppBrowser(req) && !shouldForceAppOpenInInAppBrowser()) {
       let targetUrl = webUrl
       if (isShopeeShortUrl(targetUrl)) {
         targetUrl = await expandShopeeShortUrl(targetUrl)
