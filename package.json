@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "build:bundle": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && node ./node_modules/esbuild/bin/esbuild src/index.js --platform=node --bundle --format=cjs --outfile=dist/server.cjs",
+    "build:exe": "npm run build:bundle && node ./node_modules/pkg/lib-es5/bin.js dist/server.cjs --targets node18-win-x64 --output dist/shopee-shortener.exe"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "pkg": "^5.8.1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.2",
