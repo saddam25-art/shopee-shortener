@@ -59,6 +59,15 @@ function renderOgPreviewHtml({ title, description, imageUrl, canonicalUrl, desti
 </html>`
 }
 
+function isInAppBrowser(req) {
+  const ua = String(req.headers['user-agent'] || '')
+  if (!ua) return false
+
+  // These in-app browsers often show a permission prompt when we attempt to open an external app.
+  // So we should avoid Shopee deep-linking (intent / scheme) and redirect to normal web URL.
+  return /(FBAN|FBAV|Instagram|Line\b|TikTok|Twitter|LinkedInApp|Pinterest|Snapchat)/i.test(ua)
+}
+
 redirectRouter.get('/_fallback/android', (req, res) => {
   return res.redirect(302, getAndroidFallbackUrl())
 })
@@ -175,6 +184,13 @@ redirectRouter.get('/:slug', async (req, res) => {
     }
 
     const webUrl = mergeUtm(picked, link.utm_defaults || {}, utmOverrides)
+
+    // In-app browsers (Facebook/Instagram/etc.) may show a permission dialog when we attempt
+    // to open external apps. For these UAs, do a plain web redirect.
+    if (isInAppBrowser(req)) {
+      res.setHeader('Cache-Control', 'no-store')
+      return res.redirect(302, webUrl)
+    }
 
     // Tracking
     const referrer = req.headers['referer'] || req.headers['referrer']
