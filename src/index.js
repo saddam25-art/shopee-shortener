@@ -45,6 +45,7 @@ app.get('/admin', (req, res) => {
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(127,127,127,.25); font-size: 13px; }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     .status { white-space: pre-wrap; font-size: 12px; }
+    .ogThumb { width: 320px; height: 320px; object-fit: contain; background: white; border: 1px solid rgba(127,127,127,.25); border-radius: 10px; display: block; }
   </style>
 </head>
 <body>
@@ -208,6 +209,21 @@ app.get('/admin', (req, res) => {
           const slug = row.slug;
           const shortUrl = trimTrailingSlash(baseUrl) + '/' + encodeURIComponent(slug);
           const clicks = row.short_link_counters ? row.short_link_counters.total_clicks : '';
+
+          const preview =
+            (row.og_image_url
+              ? '<div style="margin-bottom:6px"><a href="' +
+                row.og_image_url +
+                '" target="_blank" rel="noreferrer"><img class="ogThumb" src="' +
+                row.og_image_url +
+                '" alt="OG image" /></a></div>'
+              : '') +
+            '<div class="muted">' +
+            (row.og_image_url ? 'image ' : '') +
+            (row.og_title ? 'title ' : '') +
+            (row.og_description ? 'desc' : '') +
+            '</div>';
+
           const tr = document.createElement('tr');
           tr.innerHTML =
             '<td><code>' +
@@ -218,10 +234,8 @@ app.get('/admin', (req, res) => {
             '<td><a href="' +
             row.primary_url +
             '" target="_blank" rel="noreferrer">destination</a></td>' +
-            '<td class="muted">' +
-            (row.og_image_url ? 'image ' : '') +
-            (row.og_title ? 'title ' : '') +
-            (row.og_description ? 'desc' : '') +
+            '<td>' +
+            preview +
             '</td>' +
             '<td>' +
             (clicks ?? '') +
