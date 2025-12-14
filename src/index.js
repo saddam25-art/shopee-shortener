@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 
 import { linksRouter } from './routes/links.js'
+import { uploadsRouter } from './routes/uploads.js'
 import { redirectRouter } from './routes/redirect.js'
 
 const app = express()
@@ -10,7 +11,7 @@ const app = express()
 app.disable('x-powered-by')
 
 app.use(cors())
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '6mb' }))
 
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
@@ -110,6 +111,20 @@ app.get('/admin', (req, res) => {
         <div>
           <label>OG Image URL</label>
           <input id="ogImageUrl" type="url" placeholder="https://...jpg/png" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Upload Image (Supabase Storage)</label>
+          <input id="ogImageFile" type="file" accept="image/*" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="actions" style="margin-top: 0;">
+            <button id="uploadImage" type="button">Upload</button>
+            <span class="muted">Uploads to bucket <code>og-images</code> (or <code>OG_IMAGE_BUCKET</code>).</span>
+          </div>
         </div>
       </div>
 
@@ -264,6 +279,48 @@ app.get('/admin', (req, res) => {
     $('refresh').addEventListener('click', refreshList);
     $('create').addEventListener('click', createLink);
 
+    async function uploadOgImage() {
+      const fileInput = $('ogImageFile');
+      const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+      if (!file) {
+        setStatus('Select an image file first.');
+        return;
+      }
+
+      setStatus('Uploading image...');
+
+      try {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        const dataBase64 = btoa(binary);
+
+        const res = await api('/api/uploads/og-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+            dataBase64,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data && data.error ? data.error : 'Upload failed');
+
+        $('ogImageUrl').value = data.publicUrl;
+        setStatus('Uploaded: ' + data.publicUrl);
+      } catch (e) {
+        setStatus(String(e && e.message ? e.message : e));
+      }
+    }
+
+    $('uploadImage').addEventListener('click', uploadOgImage);
+
     if (getKey()) {
       refreshList();
     } else {
@@ -279,6 +336,7 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/links', linksRouter)
+app.use('/api/uploads', uploadsRouter)
 
 // redirect router should be last
 app.use('/', redirectRouter)
