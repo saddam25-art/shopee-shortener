@@ -123,9 +123,9 @@ redirectRouter.get('/:slug', async (req, res) => {
       const baseUrl = process.env.SHORTENER_BASE_URL || `${req.protocol}://${req.get('host')}`
       const canonicalUrl = `${baseUrl.replace(/\/$/, '')}/${encodeURIComponent(slug)}`
 
-      const title = process.env.OG_TITLE || link.title || 'Link'
-      const description = process.env.OG_DESCRIPTION || 'Open link'
-      const imageUrl = process.env.OG_IMAGE_URL || ''
+      const title = link.og_title || process.env.OG_TITLE || link.title || 'Link'
+      const description = link.og_description || process.env.OG_DESCRIPTION || 'Open link'
+      const imageUrl = link.og_image_url || process.env.OG_IMAGE_URL || ''
 
       const picked = pickDestination({
         primaryUrl: link.primary_url,

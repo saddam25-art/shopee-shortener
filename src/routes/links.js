@@ -43,6 +43,9 @@ const DestinationSchema = z.object({
 
 const CreateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
+  og_title: z.string().min(1).max(200).optional(),
+  og_description: z.string().min(1).max(500).optional(),
+  og_image_url: z.string().url().optional(),
   primary_url: z.string().url(),
   android_url: z.string().url().optional(),
   ios_url: z.string().url().optional(),
@@ -73,6 +76,9 @@ linksRouter.post('/', async (req, res) => {
         link = await createLink({
           slug,
           title: body.title || null,
+          og_title: body.og_title || null,
+          og_description: body.og_description || null,
+          og_image_url: body.og_image_url || null,
           is_active: body.is_active,
           mode: body.mode,
           primary_url: body.primary_url,
@@ -115,6 +121,9 @@ linksRouter.put('/:id', async (req, res) => {
 
     const updated = await updateLink(id, {
       ...(body.title !== undefined ? { title: body.title || null } : {}),
+      ...(body.og_title !== undefined ? { og_title: body.og_title || null } : {}),
+      ...(body.og_description !== undefined ? { og_description: body.og_description || null } : {}),
+      ...(body.og_image_url !== undefined ? { og_image_url: body.og_image_url || null } : {}),
       ...(body.is_active !== undefined ? { is_active: body.is_active } : {}),
       ...(body.mode !== undefined ? { mode: body.mode } : {}),
       ...(body.primary_url !== undefined ? { primary_url: body.primary_url } : {}),
