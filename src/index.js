@@ -123,7 +123,7 @@ app.get('/admin', (req, res) => {
           <label>&nbsp;</label>
           <div class="actions" style="margin-top: 0;">
             <button id="uploadImage" type="button">Upload</button>
-            <span class="muted">Uploads to bucket <code>og-images</code> (or <code>OG_IMAGE_BUCKET</code>).</span>
+            <span class="muted">Auto-resize to <code>1080×1440</code>. Uploads to <code>og-images</code> (or <code>OG_IMAGE_BUCKET</code>).</span>
           </div>
         </div>
       </div>
@@ -294,7 +294,37 @@ app.get('/admin', (req, res) => {
       setStatus('Uploading image...');
 
       try {
-        const buf = await file.arrayBuffer();
+        const TARGET_W = 1080;
+        const TARGET_H = 1440;
+
+        const imgUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = imgUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load image'));
+        });
+        URL.revokeObjectURL(imgUrl);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = TARGET_W;
+        canvas.height = TARGET_H;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas not supported');
+
+        // Cover + center crop to exactly 1080x1440 without distortion
+        const scale = Math.max(TARGET_W / img.width, TARGET_H / img.height);
+        const sw = TARGET_W / scale;
+        const sh = TARGET_H / scale;
+        const sx = (img.width - sw) / 2;
+        const sy = (img.height - sh) / 2;
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);
+
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        if (!blob) throw new Error('Failed to encode image');
+
+        const buf = await blob.arrayBuffer();
         const bytes = new Uint8Array(buf);
         let binary = '';
         const chunk = 0x8000;
@@ -307,8 +337,8 @@ app.get('/admin', (req, res) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            filename: file.name,
-            contentType: file.type,
+            filename: 'og-image.jpg',
+            contentType: 'image/jpeg',
             dataBase64,
           }),
         });
