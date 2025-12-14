@@ -161,6 +161,10 @@ app.get('/admin', (req, res) => {
     const baseUrl = window.location.origin;
     $('baseUrl').value = baseUrl;
 
+    function trimTrailingSlash(u) {
+      return u && u.endsWith('/') ? u.slice(0, -1) : u;
+    }
+
     function getKey() {
       return localStorage.getItem('ADMIN_API_KEY') || '';
     }
@@ -202,7 +206,7 @@ app.get('/admin', (req, res) => {
         tbody.innerHTML = '';
         for (const row of (data.links || [])) {
           const slug = row.slug;
-          const shortUrl = baseUrl.replace(/\/$/, '') + '/' + encodeURIComponent(slug);
+          const shortUrl = trimTrailingSlash(baseUrl) + '/' + encodeURIComponent(slug);
           const clicks = row.short_link_counters ? row.short_link_counters.total_clicks : '';
           const tr = document.createElement('tr');
           tr.innerHTML =
@@ -255,7 +259,7 @@ app.get('/admin', (req, res) => {
         if (!res.ok) throw new Error(data && data.error ? data.error : 'Create failed');
 
         const slug = data.link && data.link.slug ? data.link.slug : '';
-        const url = baseUrl.replace(/\/$/, '') + '/' + encodeURIComponent(slug);
+        const url = trimTrailingSlash(baseUrl) + '/' + encodeURIComponent(slug);
         setStatus('Created: ' + url);
         await refreshList();
       } catch (e) {
