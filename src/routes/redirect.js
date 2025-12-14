@@ -8,6 +8,60 @@ import { buildAndroidIntent, buildIosSchemeUrl, getAndroidFallbackUrl, getIosFal
 
 export const redirectRouter = express.Router()
 
+const shopeeExpandCache = new Map()
+
+function isShopeeShortUrl(url) {
+  try {
+    const u = new URL(url)
+    return u.hostname === 's.shopee.com.my'
+  } catch {
+    return false
+  }
+}
+
+async function expandShopeeShortUrl(url) {
+  const now = Date.now()
+  const cached = shopeeExpandCache.get(url)
+  if (cached && typeof cached.expiresAt === 'number' && cached.expiresAt > now && typeof cached.value === 'string') {
+    return cached.value
+  }
+
+  const timeoutMs = Number(process.env.SHOPEE_EXPAND_TIMEOUT_MS || 2500)
+  const ttlMs = Number(process.env.SHOPEE_EXPAND_TTL_MS || 86_400_000)
+
+  const controller = new AbortController()
+  const t = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) ? timeoutMs : 2500)
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'Mozilla/5.0',
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    })
+
+    const finalUrl = typeof res.url === 'string' && res.url ? res.url : url
+    try {
+      res.body?.cancel?.()
+    } catch {
+      // ignore
+    }
+
+    if (finalUrl !== url) {
+      shopeeExpandCache.set(url, { value: finalUrl, expiresAt: now + (Number.isFinite(ttlMs) ? ttlMs : 86_400_000) })
+    }
+
+    return finalUrl
+  } catch {
+    return url
+  } finally {
+    clearTimeout(t)
+  }
+}
+
 function sha256(input) {
   return crypto.createHash('sha256').update(input).digest('hex')
 }
@@ -188,8 +242,12 @@ redirectRouter.get('/:slug', async (req, res) => {
     // In-app browsers (Facebook/Instagram/etc.) may show a permission dialog when we attempt
     // to open external apps. For these UAs, do a plain web redirect.
     if (isInAppBrowser(req)) {
+      let targetUrl = webUrl
+      if (isShopeeShortUrl(targetUrl)) {
+        targetUrl = await expandShopeeShortUrl(targetUrl)
+      }
       res.setHeader('Cache-Control', 'no-store')
-      return res.redirect(302, webUrl)
+      return res.redirect(302, targetUrl)
     }
 
     // Tracking
