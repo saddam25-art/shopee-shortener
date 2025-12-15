@@ -251,6 +251,7 @@ redirectRouter.get('/:slug', async (req, res) => {
       if (isShopeeShortUrl(targetUrl)) {
         targetUrl = await expandShopeeShortUrl(targetUrl)
       }
+      res.setHeader('X-Redirect-Mode', 'inapp-web')
       res.setHeader('Cache-Control', 'no-store')
       return res.redirect(302, targetUrl)
     }
@@ -266,6 +267,7 @@ redirectRouter.get('/:slug', async (req, res) => {
     // Redirect logic
     if (device === 'android') {
       const intent = buildAndroidIntent({ webUrl })
+      res.setHeader('X-Redirect-Mode', 'android-intent')
       res.setHeader('Cache-Control', 'no-store')
       return res.redirect(302, intent)
     }
@@ -279,11 +281,13 @@ redirectRouter.get('/:slug', async (req, res) => {
       landing.searchParams.set('t', webUrl)
       landing.searchParams.set('f', fallback)
 
+      res.setHeader('X-Redirect-Mode', 'ios-landing')
       res.setHeader('Cache-Control', 'no-store')
       return res.redirect(302, landing.toString())
     }
 
     // Desktop
+    res.setHeader('X-Redirect-Mode', 'web')
     res.setHeader('Cache-Control', 'no-store')
     return res.redirect(302, webUrl)
   } catch (e) {
