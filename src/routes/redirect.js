@@ -123,8 +123,10 @@ function isInAppBrowser(req) {
 }
 
 function shouldForceAppOpenInInAppBrowser() {
-  const v = String(process.env.FORCE_SHOPEE_APP_OPEN_INAPP || '').toLowerCase()
-  return v === '1' || v === 'true' || v === 'yes'
+  // Default to TRUE - always try to open Shopee app even in FB/IG in-app browsers.
+  // Set FORCE_SHOPEE_APP_OPEN_INAPP=false to disable.
+  const v = String(process.env.FORCE_SHOPEE_APP_OPEN_INAPP ?? 'true').toLowerCase()
+  return v !== '0' && v !== 'false' && v !== 'no'
 }
 
 redirectRouter.get('/_fallback/android', (req, res) => {
