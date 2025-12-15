@@ -1,12 +1,12 @@
 import express from 'express'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { requireAdmin } from '../middleware/requireAdmin.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 import { createLink, deleteLink, getLinkStats, listLinks, updateLink, upsertDestinations } from '../db/links.js'
 
 export const linksRouter = express.Router()
 
-linksRouter.use(requireAdmin)
+linksRouter.use(requireAuth)
 
 function getSlugLength() {
   const raw = process.env.SLUG_LENGTH

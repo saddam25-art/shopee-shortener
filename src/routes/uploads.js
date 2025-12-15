@@ -1,11 +1,11 @@
 import express from 'express'
 import { nanoid } from 'nanoid'
-import { requireAdmin } from '../middleware/requireAdmin.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 import { supabase } from '../supabase.js'
 
 export const uploadsRouter = express.Router()
 
-uploadsRouter.use(requireAdmin)
+uploadsRouter.use(requireAuth)
 
 function sanitizeFileExt(contentType, filename) {
   const ct = String(contentType || '').toLowerCase()

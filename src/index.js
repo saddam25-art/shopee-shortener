@@ -1,16 +1,19 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 
 import { linksRouter } from './routes/links.js'
 import { uploadsRouter } from './routes/uploads.js'
 import { redirectRouter } from './routes/redirect.js'
+import { authRouter } from './routes/auth.js'
 
 const app = express()
 
 app.disable('x-powered-by')
 
 app.use(cors())
+app.use(cookieParser())
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '6mb' }))
 
 app.get('/', (req, res) => {
@@ -28,131 +31,160 @@ app.get('/admin', (req, res) => {
   <title>SADDAM Shortlink</title>
   <style>
     :root { color-scheme: light dark; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-    .wrap { max-width: 980px; margin: 0 auto; }
-    h1 { font-size: 20px; margin: 0 0 16px; }
-    .card { border: 1px solid rgba(127,127,127,.25); border-radius: 12px; padding: 16px; margin: 12px 0; }
-    label { display: block; font-size: 12px; opacity: .8; margin: 10px 0 6px; }
-    input, textarea, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(127,127,127,.35); background: transparent; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+    .bg { min-height: 100vh; background: radial-gradient(1200px 600px at 10% 0%, rgba(255,215,0,.10), transparent 50%), radial-gradient(900px 500px at 90% 10%, rgba(59,130,246,.18), transparent 60%), linear-gradient(180deg, rgba(17,24,39,1), rgba(3,7,18,1)); padding: 28px 16px; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    .brand { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 16px; }
+    .brand h1 { font-size: 18px; margin: 0; letter-spacing: .5px; }
+    .chip { font-size: 12px; opacity: .85; border: 1px solid rgba(255,255,255,.14); padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.06); }
+    .grid { display:grid; grid-template-columns: 1.05fr .95fr; gap: 14px; }
+    @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
+    .card { border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 16px; margin: 12px 0; background: rgba(255,255,255,.06); backdrop-filter: blur(12px); box-shadow: 0 14px 35px rgba(0,0,0,.35); }
+    h2 { margin:0 0 10px; font-size: 15px; }
+    label { display: block; font-size: 12px; opacity: .85; margin: 10px 0 6px; }
+    input, textarea, select { width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.15); color: inherit; }
     textarea { min-height: 84px; resize: vertical; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    button { padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(127,127,127,.35); background: rgba(127,127,127,.12); cursor: pointer; }
-    button.primary { background: #2563eb; border-color: #2563eb; color: white; }
+    button { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.08); cursor: pointer; color: inherit; }
+    button.primary { background: linear-gradient(135deg, #f59e0b, #fbbf24); border-color: rgba(255,255,255,.0); color: #111827; font-weight: 700; }
+    button.ghost { background: transparent; }
     .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-    .muted { opacity: .75; font-size: 12px; }
+    .muted { opacity: .78; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(127,127,127,.25); font-size: 13px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(255,255,255,.10); font-size: 13px; vertical-align: top; }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     .status { white-space: pre-wrap; font-size: 12px; }
-    .ogThumb { width: 320px; height: 320px; object-fit: contain; background: white; border: 1px solid rgba(127,127,127,.25); border-radius: 10px; display: block; }
+    .ogThumb { width: 320px; height: 320px; object-fit: contain; background: white; border: 1px solid rgba(0,0,0,.15); border-radius: 12px; display: block; }
+    .hide { display: none; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>SADDAM Shortlink</h1>
-
-    <div class="card">
-      <div class="row">
-        <div>
-          <label>Admin API Key (stored in this browser)</label>
-          <input id="apiKey" type="password" placeholder="Bearer token" />
-        </div>
-        <div>
-          <label>Base URL (readonly)</label>
-          <input id="baseUrl" type="text" readonly />
-        </div>
-      </div>
-      <div class="actions">
-        <button id="saveKey" class="primary" type="button">Save Key</button>
-        <button id="clearKey" type="button">Clear</button>
-        <span class="muted">Tip: key is required to create/list links.</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2 style="margin:0 0 10px; font-size: 16px;">Create Link</h2>
-      <div class="row">
-        <div>
-          <label>Destination URL</label>
-          <input id="primaryUrl" type="url" placeholder="https://..." required />
-        </div>
-        <div>
-          <label>Title (optional)</label>
-          <input id="title" type="text" placeholder="Internal title" />
-        </div>
+  <div class="bg">
+    <div class="wrap">
+      <div class="brand">
+        <h1>SADDAM_Shortlink</h1>
+        <div class="chip" id="meChip">Not signed in</div>
       </div>
 
-      <div class="row3">
+      <div class="grid">
         <div>
-          <label>Mode</label>
-          <select id="mode">
-            <option value="single" selected>single</option>
-            <option value="rotate">rotate</option>
-          </select>
-        </div>
-        <div>
-          <label>Active</label>
-          <select id="isActive">
-            <option value="true" selected>true</option>
-            <option value="false">false</option>
-          </select>
-        </div>
-        <div>
-          <label>Slug Length (server env)</label>
-          <input type="text" value="(configured on server)" readonly />
-        </div>
-      </div>
+          <div class="card" id="authCard">
+            <h2>Sign in</h2>
+            <div class="row">
+              <div>
+                <label>User ID</label>
+                <input id="authUser" type="text" placeholder="your_id" autocomplete="username" />
+              </div>
+              <div>
+                <label>Password</label>
+                <input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+              </div>
+            </div>
+            <div class="actions">
+              <button id="login" class="primary" type="button">Login</button>
+              <button id="register" type="button">Register</button>
+              <span class="muted">Public register enabled.</span>
+            </div>
+            <span id="authStatus" class="status"></span>
+          </div>
 
-      <div class="row">
-        <div>
-          <label>OG Title</label>
-          <input id="ogTitle" type="text" placeholder="Shown in WhatsApp/FB preview" />
-        </div>
-        <div>
-          <label>OG Image URL</label>
-          <input id="ogImageUrl" type="url" placeholder="https://...jpg/png" />
-        </div>
-      </div>
+          <div class="card hide" id="createCard">
+            <h2>Create Link</h2>
+            <div class="row">
+              <div>
+                <label>Destination URL</label>
+                <input id="primaryUrl" type="url" placeholder="https://..." required />
+              </div>
+              <div>
+                <label>Title (optional)</label>
+                <input id="title" type="text" placeholder="Internal title" />
+              </div>
+            </div>
 
-      <div class="row">
-        <div>
-          <label>Upload Image (Supabase Storage)</label>
-          <input id="ogImageFile" type="file" accept="image/*" />
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <div class="actions" style="margin-top: 0;">
-            <button id="uploadImage" type="button">Upload</button>
-            <span class="muted">Auto-resize to <code>940×788</code>. Uploads to <code>og-images</code> (or <code>OG_IMAGE_BUCKET</code>).</span>
+            <div class="row3">
+              <div>
+                <label>Mode</label>
+                <select id="mode">
+                  <option value="single" selected>single</option>
+                  <option value="rotate">rotate</option>
+                </select>
+              </div>
+              <div>
+                <label>Active</label>
+                <select id="isActive">
+                  <option value="true" selected>true</option>
+                  <option value="false">false</option>
+                </select>
+              </div>
+              <div>
+                <label>Slug Length</label>
+                <input type="text" value="(configured on server)" readonly />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>OG Title</label>
+                <input id="ogTitle" type="text" placeholder="Shown in WhatsApp/FB preview" />
+              </div>
+              <div>
+                <label>OG Image URL</label>
+                <input id="ogImageUrl" type="url" placeholder="https://...jpg/png" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Upload Image (Supabase Storage)</label>
+                <input id="ogImageFile" type="file" accept="image/*" />
+              </div>
+              <div>
+                <label>&nbsp;</label>
+                <div class="actions" style="margin-top: 0;">
+                  <button id="uploadImage" type="button">Upload</button>
+                  <span class="muted">Auto-resize to <code>940×788</code>.</span>
+                </div>
+              </div>
+            </div>
+
+            <label>OG Description</label>
+            <textarea id="ogDescription" placeholder="Shown in preview"></textarea>
+
+            <div class="actions">
+              <button id="create" class="primary" type="button">Create</button>
+              <button id="refresh" type="button">Refresh List</button>
+              <button id="logout" class="ghost" type="button">Logout</button>
+              <span id="status" class="status"></span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <label>OG Description</label>
-      <textarea id="ogDescription" placeholder="Shown in preview"></textarea>
+        <div>
+          <div class="card hide" id="linksCard">
+            <h2>Links</h2>
+            <div style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Slug</th>
+                    <th>Destination</th>
+                    <th>Preview</th>
+                    <th>Clicks</th>
+                  </tr>
+                </thead>
+                <tbody id="links"></tbody>
+              </table>
+            </div>
+          </div>
 
-      <div class="actions">
-        <button id="create" class="primary" type="button">Create</button>
-        <button id="refresh" type="button">Refresh List</button>
-        <span id="status" class="status"></span>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2 style="margin:0 0 10px; font-size: 16px;">Links</h2>
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Slug</th>
-              <th>Destination</th>
-              <th>Preview</th>
-              <th>Clicks</th>
-            </tr>
-          </thead>
-          <tbody id="links"></tbody>
-        </table>
+          <div class="card">
+            <h2>Base URL</h2>
+            <label>Readonly</label>
+            <input id="baseUrl" type="text" readonly />
+            <div class="muted" style="margin-top:10px">Tip: After you login once, your session is stored securely in a cookie.</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -166,34 +198,60 @@ app.get('/admin', (req, res) => {
       return u && u.endsWith('/') ? u.slice(0, -1) : u;
     }
 
-    function getKey() {
-      return localStorage.getItem('ADMIN_API_KEY') || '';
-    }
-
-    function setKey(v) {
-      localStorage.setItem('ADMIN_API_KEY', v);
-    }
-
-    function clearKey() {
-      localStorage.removeItem('ADMIN_API_KEY');
-    }
-
-    function authHeaders() {
-      const key = getKey();
-      if (!key) return null;
-      return { 'Authorization': 'Bearer ' + key };
-    }
-
     function setStatus(msg) {
       $('status').textContent = msg;
     }
 
+    function setAuthStatus(msg) {
+      $('authStatus').textContent = msg;
+    }
+
     async function api(path, options = {}) {
       const headers = Object.assign({}, options.headers || {});
-      const auth = authHeaders();
-      if (!auth) throw new Error('Missing Admin API Key');
-      Object.assign(headers, auth);
-      return fetch(path, Object.assign({}, options, { headers }));
+      return fetch(path, Object.assign({}, options, { headers, credentials: 'include' }));
+    }
+
+    function setSignedIn(user) {
+      const signedIn = !!user;
+      $('authCard').classList.toggle('hide', signedIn);
+      $('createCard').classList.toggle('hide', !signedIn);
+      $('linksCard').classList.toggle('hide', !signedIn);
+      $('meChip').textContent = signedIn ? ('Signed in: ' + user.username) : 'Not signed in';
+    }
+
+    async function refreshMe() {
+      try {
+        const res = await api('/api/auth/me', { method: 'GET' });
+        const data = await res.json();
+        setSignedIn(data && data.user ? data.user : null);
+        return data && data.user ? data.user : null;
+      } catch {
+        setSignedIn(null);
+        return null;
+      }
+    }
+
+    async function loginOrRegister(kind) {
+      setAuthStatus(kind === 'login' ? 'Logging in...' : 'Registering...');
+      try {
+        const username = $('authUser').value.trim();
+        const password = $('authPass').value;
+        if (!username || !password) throw new Error('User ID and password are required');
+
+        const res = await api('/api/auth/' + kind, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data && data.error ? data.error : 'Auth failed');
+
+        setAuthStatus('');
+        await refreshMe();
+        await refreshList();
+      } catch (e) {
+        setAuthStatus(String(e && e.message ? e.message : e));
+      }
     }
 
     async function refreshList() {
@@ -281,21 +339,20 @@ app.get('/admin', (req, res) => {
       }
     }
 
-    $('apiKey').value = getKey();
-    $('saveKey').addEventListener('click', () => {
-      const v = $('apiKey').value.trim();
-      if (!v) return;
-      setKey(v);
-      setStatus('Saved key.');
-      refreshList();
-    });
-    $('clearKey').addEventListener('click', () => {
-      clearKey();
-      $('apiKey').value = '';
-      setStatus('Cleared key.');
-    });
     $('refresh').addEventListener('click', refreshList);
     $('create').addEventListener('click', createLink);
+    $('login').addEventListener('click', () => loginOrRegister('login'));
+    $('register').addEventListener('click', () => loginOrRegister('register'));
+    $('logout').addEventListener('click', async () => {
+      try {
+        await api('/api/auth/logout', { method: 'POST' });
+      } catch {
+        // ignore
+      }
+      setStatus('');
+      setAuthStatus('Logged out.');
+      await refreshMe();
+    });
 
     async function uploadOgImage() {
       const fileInput = $('ogImageFile');
@@ -372,11 +429,12 @@ app.get('/admin', (req, res) => {
 
     $('uploadImage').addEventListener('click', uploadOgImage);
 
-    if (getKey()) {
-      refreshList();
-    } else {
-      setStatus('Enter your Admin API Key to begin.');
-    }
+    (async () => {
+      const user = await refreshMe();
+      if (user) {
+        await refreshList();
+      }
+    })();
   </script>
 </body>
 </html>`)
@@ -388,6 +446,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/links', linksRouter)
 app.use('/api/uploads', uploadsRouter)
+app.use('/api/auth', authRouter)
 
 // redirect router should be last
 app.use('/', redirectRouter)
