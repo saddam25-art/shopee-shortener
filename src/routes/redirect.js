@@ -397,6 +397,80 @@ redirectRouter.get('/:slug', async (req, res) => {
   }
 })
 
+// App configurations for deep linking
+const APP_CONFIGS = {
+  shopee: {
+    name: 'Shopee',
+    icon: '🛒',
+    color1: '#ee4d2d',
+    color2: '#f53d2d',
+    androidPackage: 'com.shopee.my',
+    iosScheme: 'shopee://',
+    detect: (url) => url.includes('shopee')
+  },
+  lazada: {
+    name: 'Lazada',
+    icon: '🛍️',
+    color1: '#0d00ff',
+    color2: '#1a0dff',
+    androidPackage: 'com.lazada.android',
+    iosScheme: 'lazada://',
+    detect: (url) => url.includes('lazada') || url.includes('lzd.co')
+  },
+  tiktok: {
+    name: 'TikTok',
+    icon: '🎵',
+    color1: '#000000',
+    color2: '#161823',
+    androidPackage: 'com.zhiliaoapp.musically',
+    iosScheme: 'snssdk1128://',
+    detect: (url) => url.includes('tiktok')
+  },
+  instagram: {
+    name: 'Instagram',
+    icon: '📸',
+    color1: '#e1306c',
+    color2: '#f77737',
+    androidPackage: 'com.instagram.android',
+    iosScheme: 'instagram://',
+    detect: (url) => url.includes('instagram') || url.includes('instagr.am')
+  },
+  facebook: {
+    name: 'Facebook',
+    icon: '📘',
+    color1: '#1877f2',
+    color2: '#0d65d9',
+    androidPackage: 'com.facebook.katana',
+    iosScheme: 'fb://',
+    detect: (url) => url.includes('facebook') || url.includes('fb.com') || url.includes('fb.me')
+  },
+  youtube: {
+    name: 'YouTube',
+    icon: '▶️',
+    color1: '#ff0000',
+    color2: '#cc0000',
+    androidPackage: 'com.google.android.youtube',
+    iosScheme: 'youtube://',
+    detect: (url) => url.includes('youtube') || url.includes('youtu.be')
+  },
+  twitter: {
+    name: 'X',
+    icon: '🐦',
+    color1: '#000000',
+    color2: '#14171a',
+    androidPackage: 'com.twitter.android',
+    iosScheme: 'twitter://',
+    detect: (url) => url.includes('twitter') || url.includes('x.com')
+  }
+}
+
+function detectAppType(url) {
+  for (const [key, config] of Object.entries(APP_CONFIGS)) {
+    if (config.detect(url)) return key
+  }
+  return 'other'
+}
+
 // Deep link route - aggressive app opening for Facebook/Instagram
 redirectRouter.get('/go/:slug', async (req, res) => {
   try {
@@ -428,14 +502,28 @@ redirectRouter.get('/go/:slug', async (req, res) => {
     await incrementCounters(link.id, device)
     await insertClickEvent({ shortLinkId: link.id, slug, device, referrer, ua, ipHash })
 
+    // Detect app type from URL
+    const appType = detectAppType(targetUrl)
+    const appConfig = APP_CONFIGS[appType] || {
+      name: 'App',
+      icon: '🔗',
+      color1: '#667eea',
+      color2: '#764ba2',
+      androidPackage: null,
+      iosScheme: null
+    }
+
     // Build app URLs
-    const shopeeScheme = `shopee://open?url=${encodeURIComponent(targetUrl)}`
     const parsedUrl = new URL(targetUrl)
-    const intentUrl = `intent://${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}#Intent;scheme=https;package=com.shopee.my;S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`
+    const iosScheme = appConfig.iosScheme ? `${appConfig.iosScheme}app/open?url=${encodeURIComponent(targetUrl)}` : targetUrl
+    const intentUrl = appConfig.androidPackage 
+      ? `intent://${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}#Intent;scheme=https;package=${appConfig.androidPackage};S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`
+      : targetUrl
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Cache-Control', 'no-store')
     res.setHeader('X-Redirect-Mode', 'deeplink')
+    res.setHeader('X-App-Type', appType)
 
     // Aggressive deep link landing page
     return res.status(200).send(`<!doctype html>
@@ -443,22 +531,22 @@ redirectRouter.get('/go/:slug', async (req, res) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Opening Shopee...</title>
-  <meta property="og:title" content="${escapeHtml(link.og_title || 'Shopee Deal')}" />
-  <meta property="og:description" content="${escapeHtml(link.og_description || 'Tap to open in Shopee app')}" />
+  <title>Opening ${escapeHtml(appConfig.name)}...</title>
+  <meta property="og:title" content="${escapeHtml(link.og_title || appConfig.name + ' Link')}" />
+  <meta property="og:description" content="${escapeHtml(link.og_description || 'Tap to open in ' + appConfig.name + ' app')}" />
   <meta property="og:url" content="${escapeHtml(targetUrl)}" />
   ${link.og_image_url ? `<meta property="og:image" content="${escapeHtml(link.og_image_url)}" />
   <meta property="og:image:width" content="940" />
   <meta property="og:image:height" content="788" />` : ''}
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, #ee4d2d 0%, #f53d2d 100%); display: flex; align-items: center; justify-content: center; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, ${appConfig.color1} 0%, ${appConfig.color2} 100%); display: flex; align-items: center; justify-content: center; }
     .container { text-align: center; padding: 32px 24px; width: 100%; max-width: 400px; }
     .logo { width: 100px; height: 100px; background: white; border-radius: 24px; margin: 0 auto 28px; display: flex; align-items: center; justify-content: center; font-size: 56px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); animation: pulse 2s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     h1 { color: white; font-size: 26px; margin-bottom: 12px; font-weight: 700; }
     p { color: rgba(255,255,255,0.9); font-size: 16px; margin-bottom: 36px; line-height: 1.6; }
-    .btn { display: block; width: 100%; padding: 18px 28px; background: white; color: #ee4d2d; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); margin-bottom: 14px; transition: transform 0.2s; }
+    .btn { display: block; width: 100%; padding: 18px 28px; background: white; color: ${appConfig.color1}; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); margin-bottom: 14px; transition: transform 0.2s; }
     .btn:active { transform: scale(0.98); }
     .btn-secondary { background: rgba(255,255,255,0.2); color: white; box-shadow: none; border: 2px solid rgba(255,255,255,0.4); font-weight: 600; }
     .loading { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
@@ -469,20 +557,21 @@ redirectRouter.get('/go/:slug', async (req, res) => {
 </head>
 <body>
   <div class="container">
-    <div class="logo">🛒</div>
+    <div class="logo">${appConfig.icon}</div>
     <div class="loading" id="loader"></div>
-    <h1 id="title">Opening Shopee App...</h1>
-    <p id="desc">Please wait, we're taking you to Shopee...</p>
-    <a href="${targetUrl}" class="btn" id="openBtn" style="display:none;">🛒 Open Shopee Now</a>
-    <a href="${targetUrl}" class="btn btn-secondary" id="webBtn" style="display:none;">🌐 Open in Browser</a>
+    <h1 id="title">Opening ${escapeHtml(appConfig.name)} App...</h1>
+    <p id="desc">Please wait, we're taking you to ${escapeHtml(appConfig.name)}...</p>
+    <a href="${escapeHtml(targetUrl)}" class="btn" id="openBtn" style="display:none;">${appConfig.icon} Open ${escapeHtml(appConfig.name)} Now</a>
+    <a href="${escapeHtml(targetUrl)}" class="btn btn-secondary" id="webBtn" style="display:none;">🌐 Open in Browser</a>
     <div class="timer" id="timer"></div>
   </div>
   
   <script>
     (function() {
       var intentUrl = ${JSON.stringify(intentUrl)};
-      var schemeUrl = ${JSON.stringify(shopeeScheme)};
+      var schemeUrl = ${JSON.stringify(iosScheme)};
       var webUrl = ${JSON.stringify(targetUrl)};
+      var appName = ${JSON.stringify(appConfig.name)};
       var ua = navigator.userAgent || '';
       var isAndroid = /android/i.test(ua);
       var isIOS = /iphone|ipad|ipod/i.test(ua);
@@ -493,8 +582,8 @@ redirectRouter.get('/go/:slug', async (req, res) => {
       
       function showButtons() {
         document.getElementById('loader').classList.add('hide');
-        document.getElementById('title').textContent = 'Tap to Open Shopee';
-        document.getElementById('desc').textContent = 'Tap the button below to open Shopee app directly';
+        document.getElementById('title').textContent = 'Tap to Open ' + appName;
+        document.getElementById('desc').textContent = 'Tap the button below to open ' + appName + ' app directly';
         document.getElementById('openBtn').style.display = 'block';
         document.getElementById('webBtn').style.display = 'block';
         document.getElementById('timer').textContent = '';

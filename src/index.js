@@ -549,10 +549,49 @@ app.get('/admin', (req, res) => {
           </div>
 
           <div class="card hide" id="deepLinkCard">
-            <h2>🚀 Quick Deep Link Generator</h2>
-            <p class="muted" style="margin-bottom:12px">Generate deep links that open Shopee app directly from Facebook/Instagram</p>
-            <label>Shopee Link</label>
-            <input id="deepLinkUrl" type="url" placeholder="https://shopee.com.my/... or https://s.shopee.com.my/..." />
+            <h2>🚀 App Linking for Marketers</h2>
+            <p class="muted" style="margin-bottom:12px">Instantly create deep links for any app and use in any marketing channel</p>
+            
+            <label>Select App</label>
+            <div class="app-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px;">
+              <button type="button" class="app-btn selected" data-app="shopee" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.2); background:rgba(238,77,45,0.2); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">🛒</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">Shopee</div>
+              </button>
+              <button type="button" class="app-btn" data-app="lazada" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">🛍️</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">Lazada</div>
+              </button>
+              <button type="button" class="app-btn" data-app="tiktok" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">🎵</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">TikTok</div>
+              </button>
+              <button type="button" class="app-btn" data-app="instagram" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">📸</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">Instagram</div>
+              </button>
+              <button type="button" class="app-btn" data-app="facebook" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">📘</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">Facebook</div>
+              </button>
+              <button type="button" class="app-btn" data-app="youtube" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">▶️</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">YouTube</div>
+              </button>
+              <button type="button" class="app-btn" data-app="twitter" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">🐦</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">X/Twitter</div>
+              </button>
+              <button type="button" class="app-btn" data-app="other" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
+                <div style="font-size:24px;">🔗</div>
+                <div style="font-size:11px; margin-top:4px; color:inherit;">Other</div>
+              </button>
+            </div>
+            
+            <label id="deepLinkUrlLabel">App Link / URL</label>
+            <input id="deepLinkUrl" type="url" placeholder="Paste your link here..." />
+            <p class="muted" id="deepLinkHint" style="margin:6px 0 12px; font-size:11px;">Supports: shopee.com.my, s.shopee.com.my</p>
+            
             <div class="actions">
               <button id="generateDeepLink" class="primary" type="button">⚡ Generate Deep Link</button>
             </div>
@@ -563,6 +602,7 @@ app.get('/admin', (req, res) => {
                 <button id="copyDeepLink" type="button">📋 Copy</button>
                 <a id="testDeepLink" href="#" target="_blank" style="padding:10px 14px; border-radius:12px; background:rgba(255,255,255,.08); color:inherit; text-decoration:none; font-size:13px;">🧪 Test</a>
               </div>
+              <p class="muted" style="margin-top:10px; font-size:11px;">📱 Share this link on Facebook, Instagram, WhatsApp, Email, SMS - Opens app directly!</p>
             </div>
             <span id="deepLinkStatus" class="status"></span>
           </div>
@@ -838,22 +878,114 @@ app.get('/admin', (req, res) => {
 
     $('uploadImage').addEventListener('click', uploadOgImage);
 
-    // Deep Link Generator
+    // App Linking for Marketers
+    const APP_CONFIG = {
+      shopee: {
+        name: 'Shopee',
+        icon: '🛒',
+        hint: 'Supports: shopee.com.my, s.shopee.com.my',
+        placeholder: 'https://shopee.com.my/... or https://s.shopee.com.my/...',
+        validate: (url) => url.includes('shopee'),
+        color: 'rgba(238,77,45,0.2)'
+      },
+      lazada: {
+        name: 'Lazada',
+        icon: '🛍️',
+        hint: 'Supports: lazada.com.my, lzd.co',
+        placeholder: 'https://www.lazada.com.my/... or https://lzd.co/...',
+        validate: (url) => url.includes('lazada') || url.includes('lzd.co'),
+        color: 'rgba(13,0,255,0.2)'
+      },
+      tiktok: {
+        name: 'TikTok',
+        icon: '🎵',
+        hint: 'Supports: tiktok.com, vm.tiktok.com',
+        placeholder: 'https://www.tiktok.com/... or https://vm.tiktok.com/...',
+        validate: (url) => url.includes('tiktok'),
+        color: 'rgba(0,0,0,0.3)'
+      },
+      instagram: {
+        name: 'Instagram',
+        icon: '📸',
+        hint: 'Supports: instagram.com, instagr.am',
+        placeholder: 'https://www.instagram.com/...',
+        validate: (url) => url.includes('instagram') || url.includes('instagr.am'),
+        color: 'rgba(225,48,108,0.2)'
+      },
+      facebook: {
+        name: 'Facebook',
+        icon: '📘',
+        hint: 'Supports: facebook.com, fb.com, fb.me',
+        placeholder: 'https://www.facebook.com/...',
+        validate: (url) => url.includes('facebook') || url.includes('fb.com') || url.includes('fb.me'),
+        color: 'rgba(24,119,242,0.2)'
+      },
+      youtube: {
+        name: 'YouTube',
+        icon: '▶️',
+        hint: 'Supports: youtube.com, youtu.be',
+        placeholder: 'https://www.youtube.com/... or https://youtu.be/...',
+        validate: (url) => url.includes('youtube') || url.includes('youtu.be'),
+        color: 'rgba(255,0,0,0.2)'
+      },
+      twitter: {
+        name: 'X/Twitter',
+        icon: '🐦',
+        hint: 'Supports: twitter.com, x.com',
+        placeholder: 'https://twitter.com/... or https://x.com/...',
+        validate: (url) => url.includes('twitter') || url.includes('x.com'),
+        color: 'rgba(29,161,242,0.2)'
+      },
+      other: {
+        name: 'Other App',
+        icon: '🔗',
+        hint: 'Any URL - we will try to open it in the native app',
+        placeholder: 'https://...',
+        validate: (url) => url.startsWith('http'),
+        color: 'rgba(128,128,128,0.2)'
+      }
+    };
+
+    let selectedApp = 'shopee';
+
     function setDeepLinkStatus(msg) {
       $('deepLinkStatus').textContent = msg;
     }
 
-    $('generateDeepLink').addEventListener('click', async () => {
-      const shopeeUrl = $('deepLinkUrl').value.trim();
-      const btn = $('generateDeepLink');
+    function updateAppUI() {
+      const config = APP_CONFIG[selectedApp];
+      $('deepLinkUrl').placeholder = config.placeholder;
+      $('deepLinkHint').textContent = config.hint;
       
-      if (!shopeeUrl) {
-        setDeepLinkStatus('Please enter a Shopee link');
+      document.querySelectorAll('.app-btn').forEach(btn => {
+        const app = btn.dataset.app;
+        const isSelected = app === selectedApp;
+        btn.classList.toggle('selected', isSelected);
+        btn.style.borderColor = isSelected ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.1)';
+        btn.style.background = isSelected ? APP_CONFIG[app].color : 'rgba(255,255,255,.05)';
+      });
+    }
+
+    document.querySelectorAll('.app-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedApp = btn.dataset.app;
+        updateAppUI();
+        $('deepLinkResult').classList.add('hide');
+      });
+    });
+
+    $('generateDeepLink').addEventListener('click', async () => {
+      const url = $('deepLinkUrl').value.trim();
+      const btn = $('generateDeepLink');
+      const config = APP_CONFIG[selectedApp];
+      
+      if (!url) {
+        setDeepLinkStatus('Please enter a URL');
         return;
       }
       
-      if (!shopeeUrl.includes('shopee')) {
-        setDeepLinkStatus('Please enter a valid Shopee link');
+      if (!config.validate(url)) {
+        setDeepLinkStatus('Please enter a valid ' + config.name + ' link');
         return;
       }
       
@@ -866,11 +998,12 @@ app.get('/admin', (req, res) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            primary_url: shopeeUrl,
-            og_title: 'Shopee Deal',
-            og_description: 'Tap to open in Shopee app',
+            primary_url: url,
+            og_title: config.name + ' Link',
+            og_description: 'Tap to open in ' + config.name + ' app',
             mode: 'single',
-            is_active: true
+            is_active: true,
+            app_type: selectedApp
           })
         });
         
@@ -887,7 +1020,6 @@ app.get('/admin', (req, res) => {
         $('deepLinkResult').classList.remove('hide');
         setDeepLinkStatus('');
         
-        // Refresh links list
         await refreshList();
         
       } catch (e) {
