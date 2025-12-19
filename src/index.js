@@ -880,7 +880,7 @@ app.get('/admin', (req, res) => {
           throw new Error(data.error || 'Failed to create deep link');
         }
         
-        const deepLinkUrl = baseUrl + '/go/' + data.slug;
+        const deepLinkUrl = baseUrl + '/go/' + data.link.slug;
         
         $('deepLinkOutput').value = deepLinkUrl;
         $('testDeepLink').href = deepLinkUrl;
