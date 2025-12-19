@@ -832,6 +832,31 @@ app.get('/health', (req, res) => {
   return res.json({ ok: true })
 })
 
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain')
+  return res.status(200).send(`User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: *
+Allow: /
+`)
+})
+
 app.use('/api/links', linksRouter)
 app.use('/api/uploads', uploadsRouter)
 app.use('/api/auth', authRouter)
