@@ -101,7 +101,10 @@ function renderOgPreviewHtml({ title, description, imageUrl, canonicalUrl, desti
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDescription}" />
   <meta property="og:url" content="${safeCanonical}" />
-  ${safeImage ? `<meta property="og:image" content="${safeImage}" />` : ''}
+  ${safeImage ? `<meta property="og:image" content="${safeImage}" />
+  <meta property="og:image:width" content="940" />
+  <meta property="og:image:height" content="788" />
+  <meta property="og:image:type" content="image/jpeg" />` : ''}
   <meta name="twitter:card" content="${safeImage ? 'summary_large_image' : 'summary'}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDescription}" />
@@ -246,23 +249,118 @@ redirectRouter.get('/:slug', async (req, res) => {
 
     const webUrl = mergeUtm(picked, link.utm_defaults || {}, utmOverrides)
 
-    // In-app browsers (Facebook/Instagram/etc.) may show a permission dialog when we attempt
-    // to open external apps. For these UAs, do a plain web redirect.
-    if (isInAppBrowser(req) && !shouldForceAppOpenInInAppBrowser()) {
+    // Tracking data
+    const referrer = req.headers['referer'] || req.headers['referrer'] || ''
+    const ip = (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.socket.remoteAddress || ''
+    const ipHash = ip ? sha256(ip) : null
+
+    // In-app browsers (Facebook/Instagram/etc.) block Android Intent URLs.
+    // Use a landing page with JavaScript to open Shopee app directly.
+    if (isInAppBrowser(req)) {
       let targetUrl = webUrl
       if (isShopeeShortUrl(targetUrl)) {
         targetUrl = await expandShopeeShortUrl(targetUrl)
       }
-      res.setHeader('X-Redirect-Mode', 'inapp-web')
+      
+      // Track the click
+      await incrementCounters(link.id, device)
+      await insertClickEvent({ shortLinkId: link.id, slug, device, referrer, ua, ipHash })
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
-      return res.redirect(302, targetUrl)
+      res.setHeader('X-Redirect-Mode', 'inapp-force-app')
+      
+      // Build different URLs for different approaches
+      const shopeeScheme = `shopee://open?url=${encodeURIComponent(targetUrl)}`
+      
+      // Android Intent URL - this can bypass Facebook's in-app browser restrictions
+      const parsedUrl = new URL(targetUrl)
+      const intentUrl = `intent://${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}#Intent;scheme=https;package=com.shopee.my;S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`
+      
+      return res.status(200).send(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opening Shopee...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; background: linear-gradient(135deg, #ee4d2d 0%, #f53d2d 100%); display: flex; align-items: center; justify-content: center; }
+    .container { text-align: center; padding: 24px; width: 100%; max-width: 400px; }
+    .logo { width: 80px; height: 80px; background: white; border-radius: 20px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; font-size: 40px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    h1 { color: white; font-size: 22px; margin-bottom: 12px; font-weight: 600; }
+    p { color: rgba(255,255,255,0.9); font-size: 15px; margin-bottom: 32px; line-height: 1.5; }
+    .btn { display: block; width: 100%; padding: 16px 24px; background: white; color: #ee4d2d; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); margin-bottom: 12px; }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background: rgba(255,255,255,0.15); color: white; box-shadow: none; border: 1px solid rgba(255,255,255,0.3); }
+    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hide { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🛒</div>
+    <div class="loading" id="loader"></div>
+    <h1 id="title">Opening Shopee...</h1>
+    <p id="desc">Please wait, redirecting you to Shopee app...</p>
+    <a href="${targetUrl}" class="btn" id="openBtn" style="display:none;">🛒 Open Shopee Now</a>
+    <a href="${targetUrl}" class="btn btn-secondary" id="webBtn" style="display:none;">Open in Browser</a>
+  </div>
+  
+  <script>
+    (function() {
+      var intentUrl = ${JSON.stringify(intentUrl)};
+      var schemeUrl = ${JSON.stringify(shopeeScheme)};
+      var webUrl = ${JSON.stringify(targetUrl)};
+      var ua = navigator.userAgent || '';
+      var isAndroid = /android/i.test(ua);
+      var isIOS = /iphone|ipad|ipod/i.test(ua);
+      var isFB = /FBAN|FBAV/i.test(ua);
+      var isIG = /Instagram/i.test(ua);
+      
+      function showButtons() {
+        document.getElementById('loader').classList.add('hide');
+        document.getElementById('title').textContent = 'Tap to Open Shopee';
+        document.getElementById('desc').textContent = 'Tap the button below to open in Shopee app';
+        document.getElementById('openBtn').style.display = 'block';
+        document.getElementById('webBtn').style.display = 'block';
+        
+        // Set correct URL on button
+        if (isAndroid) {
+          document.getElementById('openBtn').href = intentUrl;
+        } else if (isIOS) {
+          document.getElementById('openBtn').href = schemeUrl;
+        }
+      }
+      
+      function tryOpenApp() {
+        if (isAndroid) {
+          // Android: Use Intent URL - works better in Facebook WebView
+          window.location.href = intentUrl;
+        } else if (isIOS) {
+          // iOS: Try scheme
+          window.location.href = schemeUrl;
+        } else {
+          // Desktop: Direct to web
+          window.location.href = webUrl;
+          return;
+        }
+        
+        // Show buttons after delay if still on page
+        setTimeout(showButtons, 1500);
+      }
+      
+      // Start immediately
+      tryOpenApp();
+      
+    })();
+  </script>
+</body>
+</html>`)
     }
 
-    // Tracking
-    const referrer = req.headers['referer'] || req.headers['referrer']
-    const ip = (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.socket.remoteAddress || ''
-    const ipHash = ip ? sha256(ip) : null
-
+    // Track click and redirect
     await incrementCounters(link.id, device)
     await insertClickEvent({ shortLinkId: link.id, slug, device, referrer, ua, ipHash })
 
