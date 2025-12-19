@@ -547,6 +547,25 @@ app.get('/admin', (req, res) => {
               <span id="status" class="status"></span>
             </div>
           </div>
+
+          <div class="card hide" id="deepLinkCard">
+            <h2>🚀 Quick Deep Link Generator</h2>
+            <p class="muted" style="margin-bottom:12px">Generate deep links that open Shopee app directly from Facebook/Instagram</p>
+            <label>Shopee Link</label>
+            <input id="deepLinkUrl" type="url" placeholder="https://shopee.com.my/... or https://s.shopee.com.my/..." />
+            <div class="actions">
+              <button id="generateDeepLink" class="primary" type="button">⚡ Generate Deep Link</button>
+            </div>
+            <div id="deepLinkResult" class="hide" style="margin-top:12px; padding:12px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); border-radius:12px;">
+              <label style="color:#22c55e; margin:0 0 8px;">✅ Deep Link Ready!</label>
+              <input id="deepLinkOutput" type="text" readonly style="background:rgba(0,0,0,0.3);" />
+              <div class="actions" style="margin-top:8px;">
+                <button id="copyDeepLink" type="button">📋 Copy</button>
+                <a id="testDeepLink" href="#" target="_blank" style="padding:10px 14px; border-radius:12px; background:rgba(255,255,255,.08); color:inherit; text-decoration:none; font-size:13px;">🧪 Test</a>
+              </div>
+            </div>
+            <span id="deepLinkStatus" class="status"></span>
+          </div>
         </div>
 
         <div>
@@ -605,6 +624,7 @@ app.get('/admin', (req, res) => {
       $('authCard').classList.toggle('hide', signedIn);
       $('createCard').classList.toggle('hide', !signedIn);
       $('linksCard').classList.toggle('hide', !signedIn);
+      $('deepLinkCard').classList.toggle('hide', !signedIn);
       $('meChip').textContent = signedIn ? ('Signed in: ' + user.username) : 'Not signed in';
     }
 
@@ -817,6 +837,83 @@ app.get('/admin', (req, res) => {
     }
 
     $('uploadImage').addEventListener('click', uploadOgImage);
+
+    // Deep Link Generator
+    function setDeepLinkStatus(msg) {
+      $('deepLinkStatus').textContent = msg;
+    }
+
+    $('generateDeepLink').addEventListener('click', async () => {
+      const shopeeUrl = $('deepLinkUrl').value.trim();
+      const btn = $('generateDeepLink');
+      
+      if (!shopeeUrl) {
+        setDeepLinkStatus('Please enter a Shopee link');
+        return;
+      }
+      
+      if (!shopeeUrl.includes('shopee')) {
+        setDeepLinkStatus('Please enter a valid Shopee link');
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating...';
+      setDeepLinkStatus('');
+      
+      try {
+        const res = await api('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            primary_url: shopeeUrl,
+            og_title: 'Shopee Deal',
+            og_description: 'Tap to open in Shopee app',
+            mode: 'single',
+            is_active: true
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to create deep link');
+        }
+        
+        const deepLinkUrl = baseUrl + '/go/' + data.slug;
+        
+        $('deepLinkOutput').value = deepLinkUrl;
+        $('testDeepLink').href = deepLinkUrl;
+        $('deepLinkResult').classList.remove('hide');
+        setDeepLinkStatus('');
+        
+        // Refresh links list
+        await refreshList();
+        
+      } catch (e) {
+        setDeepLinkStatus('Error: ' + (e.message || e));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Generate Deep Link';
+      }
+    });
+
+    $('copyDeepLink').addEventListener('click', () => {
+      const url = $('deepLinkOutput').value;
+      navigator.clipboard.writeText(url).then(() => {
+        $('copyDeepLink').textContent = '✓ Copied!';
+        setTimeout(() => { $('copyDeepLink').textContent = '📋 Copy'; }, 2000);
+      }).catch(() => {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        $('copyDeepLink').textContent = '✓ Copied!';
+        setTimeout(() => { $('copyDeepLink').textContent = '📋 Copy'; }, 2000);
+      });
+    });
 
     (async () => {
       const user = await refreshMe();
