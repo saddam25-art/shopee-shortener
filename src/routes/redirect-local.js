@@ -74,7 +74,7 @@ redirectRouterLocal.get('/:slug', async (req, res) => {
   <meta property="og:image:width" content="940" />
   <meta property="og:image:height" content="788" />
   <meta property="og:image:type" content="image/jpeg" />` : ''}
-  <meta property="og:url" content="${req.protocol}://${req.get('host')}/${slug}" />
+  <meta property="og:url" content="${link.default_url}" />
   <meta http-equiv="refresh" content="0;url=${link.default_url}" />
 </head>
 <body></body>

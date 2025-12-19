@@ -193,9 +193,6 @@ redirectRouter.get('/:slug', async (req, res) => {
     // Social preview bots (WhatsApp/FB/Telegram/etc.) need an HTML page with OG tags.
     // Do not count these as real clicks.
     if (isSocialPreviewBot(req)) {
-      const baseUrl = process.env.SHORTENER_BASE_URL || `${req.protocol}://${req.get('host')}`
-      const canonicalUrl = `${baseUrl.replace(/\/$/, '')}/${encodeURIComponent(slug)}`
-
       const title = link.og_title || process.env.OG_TITLE || link.title || 'Link'
       const description = link.og_description || process.env.OG_DESCRIPTION || 'Open link'
       const imageUrl = link.og_image_url || process.env.OG_IMAGE_URL || ''
@@ -206,11 +203,12 @@ redirectRouter.get('/:slug', async (req, res) => {
         destinations,
       })
 
+      // Use the Shopee destination URL as og:url so Facebook directs users to Shopee app directly
       const html = renderOgPreviewHtml({
         title,
         description,
         imageUrl,
-        canonicalUrl,
+        canonicalUrl: picked,  // Set og:url to Shopee link for direct app open
         destinationUrl: picked,
       })
 
