@@ -109,9 +109,12 @@ function renderOgPreviewHtml({ title, description, imageUrl, canonicalUrl, desti
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDescription}" />
   ${safeImage ? `<meta name="twitter:image" content="${safeImage}" />` : ''}
+  <meta http-equiv="refresh" content="0;url=${safeDestination}" />
+  <link rel="alternate" href="shopee://open?url=${encodeURIComponent(safeDestination)}" />
 </head>
 <body>
-  <a href="${safeDestination}">Continue</a>
+  <a href="${safeDestination}">Continue to Shopee</a>
+  <script>window.location.replace("${safeDestination}");</script>
 </body>
 </html>`
 }
