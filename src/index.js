@@ -50,7 +50,8 @@ app.get('/', (req, res) => {
     <h1>SADDAM Shortlink</h1>
     <p>Create short links with custom OG images for Shopee affiliate marketing. Direct app open from Facebook!</p>
     <div class="buttons">
-      <a href="/link-master" class="btn btn-primary">🛒 Link Master</a>
+      <a href="/deeplink" class="btn btn-primary">🚀 Deep Link Generator</a>
+      <a href="/link-master" class="btn btn-secondary">🛒 Link Master</a>
       <a href="/admin" class="btn btn-secondary">⚙️ Admin Panel</a>
     </div>
     <div class="features">
@@ -823,6 +824,189 @@ app.get('/admin', (req, res) => {
         await refreshList();
       }
     })();
+  </script>
+</body>
+</html>`)
+})
+
+app.get('/deeplink', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  return res.status(200).send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deep Link Generator - Open Shopee App Directly</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+    .card { background: white; border-radius: 24px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    .logo { width: 80px; height: 80px; background: linear-gradient(135deg, #ee4d2d, #f53d2d); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 24px; }
+    h1 { text-align: center; font-size: 2rem; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 32px; }
+    .form-group { margin-bottom: 24px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; }
+    input[type="text"], input[type="url"] { width: 100%; padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s; }
+    input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+    .btn { display: block; width: 100%; padding: 18px; background: linear-gradient(135deg, #ee4d2d, #f53d2d); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(238,77,45,0.3); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .result { margin-top: 32px; padding: 24px; background: #f0fdf4; border: 2px solid #86efac; border-radius: 16px; display: none; }
+    .result.show { display: block; }
+    .result h3 { color: #166534; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .result-url { background: white; padding: 16px; border-radius: 8px; word-break: break-all; font-family: monospace; font-size: 0.9rem; margin-bottom: 16px; border: 1px solid #d1d5db; }
+    .copy-btn { background: #166534; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-right: 8px; }
+    .copy-btn:hover { background: #14532d; }
+    .test-btn { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+    .test-btn:hover { background: #5a67d8; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; padding-top: 32px; border-top: 1px solid #e5e7eb; }
+    .feature { text-align: center; padding: 16px; }
+    .feature-icon { font-size: 32px; margin-bottom: 8px; }
+    .feature h4 { font-size: 0.9rem; color: #333; margin-bottom: 4px; }
+    .feature p { font-size: 0.8rem; color: #666; }
+    .how-it-works { margin-top: 32px; padding: 24px; background: #f8fafc; border-radius: 16px; }
+    .how-it-works h3 { margin-bottom: 16px; color: #333; }
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { display: flex; align-items: flex-start; gap: 12px; }
+    .step-num { width: 28px; height: 28px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+    .step-text { color: #444; line-height: 1.5; }
+    @media (max-width: 640px) { .features { grid-template-columns: 1fr; } .card { padding: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">🚀</div>
+      <h1>Deep Link Generator</h1>
+      <p class="subtitle">Create links that open Shopee app directly from Facebook, Instagram & more!</p>
+      
+      <div class="form-group">
+        <label for="shopeeUrl">🔗 Shopee Link</label>
+        <input type="url" id="shopeeUrl" placeholder="https://shopee.com.my/... or https://s.shopee.com.my/..." />
+      </div>
+      
+      <div class="form-group">
+        <label for="customSlug">✨ Custom Slug (optional)</label>
+        <input type="text" id="customSlug" placeholder="my-promo" />
+      </div>
+      
+      <button class="btn" id="generateBtn" onclick="generateDeepLink()">⚡ Generate Deep Link</button>
+      
+      <div class="result" id="result">
+        <h3>✅ Deep Link Ready!</h3>
+        <div class="result-url" id="resultUrl"></div>
+        <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+        <a class="test-btn" id="testLink" href="#" target="_blank">🧪 Test Link</a>
+      </div>
+      
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <h4>Direct App Open</h4>
+          <p>Opens Shopee app without permission prompts</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🎯</div>
+          <h4>Smart Detection</h4>
+          <p>Auto-detects Android/iOS devices</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📊</div>
+          <h4>Click Tracking</h4>
+          <p>Track all clicks & conversions</p>
+        </div>
+      </div>
+      
+      <div class="how-it-works">
+        <h3>🔧 How It Works</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Paste your Shopee link</strong> - Works with product links, affiliate links, or short links</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Generate deep link</strong> - We create a special URL that can open the Shopee app</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Share on Facebook</strong> - When users click, they go directly to the Shopee app!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    async function generateDeepLink() {
+      const shopeeUrl = document.getElementById('shopeeUrl').value.trim();
+      const customSlug = document.getElementById('customSlug').value.trim();
+      const btn = document.getElementById('generateBtn');
+      
+      if (!shopeeUrl) {
+        alert('Please enter a Shopee link');
+        return;
+      }
+      
+      if (!shopeeUrl.includes('shopee')) {
+        alert('Please enter a valid Shopee link');
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating...';
+      
+      try {
+        // Create a deep link entry via API
+        const res = await fetch('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            primary_url: shopeeUrl,
+            og_title: 'Shopee Deal',
+            og_description: 'Tap to open in Shopee app',
+            mode: 'single',
+            is_active: true
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to create deep link');
+        }
+        
+        const baseUrl = window.location.origin;
+        const deepLinkUrl = baseUrl + '/go/' + data.slug;
+        
+        document.getElementById('resultUrl').textContent = deepLinkUrl;
+        document.getElementById('testLink').href = deepLinkUrl;
+        document.getElementById('result').classList.add('show');
+        
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Generate Deep Link';
+      }
+    }
+    
+    function copyLink() {
+      const url = document.getElementById('resultUrl').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('✅ Link copied to clipboard!');
+      }).catch(() => {
+        // Fallback
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('✅ Link copied to clipboard!');
+      });
+    }
   </script>
 </body>
 </html>`)

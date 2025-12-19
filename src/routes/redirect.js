@@ -396,3 +396,168 @@ redirectRouter.get('/:slug', async (req, res) => {
     return res.status(500).send(message)
   }
 })
+
+// Deep link route - aggressive app opening for Facebook/Instagram
+redirectRouter.get('/go/:slug', async (req, res) => {
+  try {
+    const slug = req.params.slug
+    const record = await getLinkBySlug(slug)
+
+    if (!record) {
+      return res.status(404).send('Not Found')
+    }
+
+    const { link, destinations } = record
+    const { device, ua } = detectDevice(req)
+
+    const picked = pickDestination({
+      primaryUrl: link.primary_url,
+      mode: link.mode,
+      destinations,
+    })
+
+    let targetUrl = picked
+    if (isShopeeShortUrl(targetUrl)) {
+      targetUrl = await expandShopeeShortUrl(targetUrl)
+    }
+
+    // Track click
+    const referrer = req.headers['referer'] || req.headers['referrer'] || ''
+    const ip = (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.socket.remoteAddress || ''
+    const ipHash = ip ? sha256(ip) : null
+    await incrementCounters(link.id, device)
+    await insertClickEvent({ shortLinkId: link.id, slug, device, referrer, ua, ipHash })
+
+    // Build app URLs
+    const shopeeScheme = `shopee://open?url=${encodeURIComponent(targetUrl)}`
+    const parsedUrl = new URL(targetUrl)
+    const intentUrl = `intent://${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}#Intent;scheme=https;package=com.shopee.my;S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-store')
+    res.setHeader('X-Redirect-Mode', 'deeplink')
+
+    // Aggressive deep link landing page
+    return res.status(200).send(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Opening Shopee...</title>
+  <meta property="og:title" content="${escapeHtml(link.og_title || 'Shopee Deal')}" />
+  <meta property="og:description" content="${escapeHtml(link.og_description || 'Tap to open in Shopee app')}" />
+  <meta property="og:url" content="${escapeHtml(targetUrl)}" />
+  ${link.og_image_url ? `<meta property="og:image" content="${escapeHtml(link.og_image_url)}" />
+  <meta property="og:image:width" content="940" />
+  <meta property="og:image:height" content="788" />` : ''}
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, #ee4d2d 0%, #f53d2d 100%); display: flex; align-items: center; justify-content: center; }
+    .container { text-align: center; padding: 32px 24px; width: 100%; max-width: 400px; }
+    .logo { width: 100px; height: 100px; background: white; border-radius: 24px; margin: 0 auto 28px; display: flex; align-items: center; justify-content: center; font-size: 56px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    h1 { color: white; font-size: 26px; margin-bottom: 12px; font-weight: 700; }
+    p { color: rgba(255,255,255,0.9); font-size: 16px; margin-bottom: 36px; line-height: 1.6; }
+    .btn { display: block; width: 100%; padding: 18px 28px; background: white; color: #ee4d2d; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); margin-bottom: 14px; transition: transform 0.2s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background: rgba(255,255,255,0.2); color: white; box-shadow: none; border: 2px solid rgba(255,255,255,0.4); font-weight: 600; }
+    .loading { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hide { display: none !important; }
+    .timer { color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🛒</div>
+    <div class="loading" id="loader"></div>
+    <h1 id="title">Opening Shopee App...</h1>
+    <p id="desc">Please wait, we're taking you to Shopee...</p>
+    <a href="${targetUrl}" class="btn" id="openBtn" style="display:none;">🛒 Open Shopee Now</a>
+    <a href="${targetUrl}" class="btn btn-secondary" id="webBtn" style="display:none;">🌐 Open in Browser</a>
+    <div class="timer" id="timer"></div>
+  </div>
+  
+  <script>
+    (function() {
+      var intentUrl = ${JSON.stringify(intentUrl)};
+      var schemeUrl = ${JSON.stringify(shopeeScheme)};
+      var webUrl = ${JSON.stringify(targetUrl)};
+      var ua = navigator.userAgent || '';
+      var isAndroid = /android/i.test(ua);
+      var isIOS = /iphone|ipad|ipod/i.test(ua);
+      var isFB = /FBAN|FBAV/i.test(ua);
+      var isIG = /Instagram/i.test(ua);
+      var attempts = 0;
+      var maxAttempts = 3;
+      
+      function showButtons() {
+        document.getElementById('loader').classList.add('hide');
+        document.getElementById('title').textContent = 'Tap to Open Shopee';
+        document.getElementById('desc').textContent = 'Tap the button below to open Shopee app directly';
+        document.getElementById('openBtn').style.display = 'block';
+        document.getElementById('webBtn').style.display = 'block';
+        document.getElementById('timer').textContent = '';
+        
+        if (isAndroid) {
+          document.getElementById('openBtn').href = intentUrl;
+        } else if (isIOS) {
+          document.getElementById('openBtn').href = schemeUrl;
+        }
+      }
+      
+      function tryOpenApp() {
+        attempts++;
+        
+        if (isAndroid) {
+          // Android: Try Intent URL first (best for Facebook WebView)
+          var iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = intentUrl;
+          document.body.appendChild(iframe);
+          
+          // Also try direct location change
+          setTimeout(function() {
+            window.location.href = intentUrl;
+          }, 100);
+          
+        } else if (isIOS) {
+          // iOS: Try scheme URL
+          window.location.href = schemeUrl;
+          
+          // Fallback: try opening in new window
+          setTimeout(function() {
+            var a = document.createElement('a');
+            a.href = schemeUrl;
+            a.click();
+          }, 300);
+          
+        } else {
+          // Desktop: Direct to web
+          window.location.href = webUrl;
+          return;
+        }
+        
+        // Show buttons after delay
+        setTimeout(function() {
+          if (attempts < maxAttempts) {
+            document.getElementById('timer').textContent = 'Retrying... (' + attempts + '/' + maxAttempts + ')';
+            tryOpenApp();
+          } else {
+            showButtons();
+          }
+        }, 1200);
+      }
+      
+      // Start immediately
+      tryOpenApp();
+      
+    })();
+  </script>
+</body>
+</html>`)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    return res.status(500).send(message)
+  }
+})
