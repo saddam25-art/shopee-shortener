@@ -9,6 +9,7 @@ import { uploadsRouter } from './routes/uploads.js'
 import { redirectRouter } from './routes/redirect.js'
 import { authRouter } from './routes/auth.js'
 import { createLink } from './db/links.js'
+import { supabase } from './supabase.js'
 
 const app = express()
 
@@ -166,11 +167,13 @@ app.get('/link-master', (req, res) => {
           <span class="step-num">1</span>
           <span class="step-title">🔗 Create Shortlink First</span>
         </div>
-        <p class="step-desc">Paste any URL to create a shortlink. Use this shortlink for your Facebook post.</p>
-        <input type="url" id="any-url" placeholder="Paste any URL here..." style="margin-bottom:12px;" />
+        <p class="step-desc">Paste any URL to create a shortlink with custom preview for Facebook & social media.</p>
         
-        <div class="slug-options" style="margin-bottom:12px;">
-          <label style="font-size:0.85rem; color:rgba(255,255,255,0.8); margin-bottom:8px; display:block;">Slug Option:</label>
+        <label style="font-size:0.8rem; color:rgba(255,255,255,0.7); margin-bottom:6px; display:block;">🔗 Destination URL <span style="color:#ef4444;">*Required</span></label>
+        <input type="url" id="any-url" placeholder="Paste any URL here..." style="margin-bottom:14px;" />
+        
+        <div class="slug-options" style="margin-bottom:14px;">
+          <label style="font-size:0.8rem; color:rgba(255,255,255,0.7); margin-bottom:6px; display:block;">Slug Option:</label>
           <div style="display:flex; gap:16px; margin-bottom:10px;">
             <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
               <input type="radio" name="slug-type" value="auto" checked style="accent-color:#8b5cf6;" />
@@ -183,7 +186,27 @@ app.get('/link-master', (req, res) => {
           </div>
           <div id="manual-slug-box" class="hide" style="margin-top:8px;">
             <input type="text" id="manual-slug" placeholder="Enter custom slug (min 2 characters)" style="width:100%; padding:12px 14px; border:1px solid rgba(139,92,246,0.5); border-radius:10px; background:rgba(139,92,246,0.15); color:#fff; font-size:0.95rem;" />
-            <p style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:6px;">⚠️ Letters, numbers only. Min 2 characters. Spaces auto-convert to dash (-).</p>
+            <p style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:6px;">⚠️ Letters, numbers, dash (-), dot (.). Min 2 chars. Spaces → dash.</p>
+          </div>
+        </div>
+        
+        <div style="background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:16px; margin-bottom:14px;">
+          <label style="font-size:0.85rem; color:#a78bfa; font-weight:600; margin-bottom:12px; display:block;">📱 Social Media Preview (Optional)</label>
+          
+          <label style="font-size:0.75rem; color:rgba(255,255,255,0.6); margin-bottom:4px; display:block;">Preview Title</label>
+          <input type="text" id="og-title" placeholder="Enter preview title..." style="width:100%; padding:10px 12px; border:1px solid rgba(255,255,255,0.2); border-radius:8px; background:rgba(0,0,0,0.3); color:#fff; font-size:0.9rem; margin-bottom:10px;" />
+          
+          <label style="font-size:0.75rem; color:rgba(255,255,255,0.6); margin-bottom:4px; display:block;">Preview Description</label>
+          <input type="text" id="og-desc" placeholder="Enter preview description..." style="width:100%; padding:10px 12px; border:1px solid rgba(255,255,255,0.2); border-radius:8px; background:rgba(0,0,0,0.3); color:#fff; font-size:0.9rem; margin-bottom:10px;" />
+          
+          <label style="font-size:0.75rem; color:rgba(255,255,255,0.6); margin-bottom:4px; display:block;">Preview Image (1200x630 recommended)</label>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="file" id="og-image" accept="image/*" style="display:none;" />
+            <button type="button" id="btn-upload-img" style="padding:10px 16px; background:rgba(255,255,255,0.1); border:1px dashed rgba(255,255,255,0.3); border-radius:8px; color:#fff; font-size:0.85rem; cursor:pointer;">📷 Upload Image</button>
+            <span id="img-filename" style="font-size:0.8rem; color:rgba(255,255,255,0.5);">No image selected</span>
+          </div>
+          <div id="img-preview-box" class="hide" style="margin-top:10px;">
+            <img id="img-preview" style="max-width:100%; max-height:150px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);" />
           </div>
         </div>
         
@@ -249,6 +272,8 @@ app.get('/link-master', (req, res) => {
   </footer>
 
   <script>
+    let uploadedImageBase64 = null;
+    
     // Toggle manual slug input
     document.querySelectorAll('input[name="slug-type"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
@@ -266,12 +291,33 @@ app.get('/link-master', (req, res) => {
     document.getElementById('manual-slug').addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/ /g, '-').toLowerCase();
     });
+    
+    // Image upload handling
+    document.getElementById('btn-upload-img').addEventListener('click', () => {
+      document.getElementById('og-image').click();
+    });
+    
+    document.getElementById('og-image').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('img-filename').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          uploadedImageBase64 = ev.target.result;
+          document.getElementById('img-preview').src = uploadedImageBase64;
+          document.getElementById('img-preview-box').classList.remove('hide');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
 
     // Step 1: Create basic shortlink
     document.getElementById('btn-step1').addEventListener('click', async () => {
       const url = document.getElementById('any-url').value.trim();
       const slugType = document.querySelector('input[name="slug-type"]:checked').value;
       const manualSlug = document.getElementById('manual-slug').value.trim().toLowerCase();
+      const ogTitle = document.getElementById('og-title').value.trim();
+      const ogDesc = document.getElementById('og-desc').value.trim();
       const btn = document.getElementById('btn-step1');
       const output = document.getElementById('step1-output');
       const result = document.getElementById('step1-result');
@@ -286,7 +332,7 @@ app.get('/link-master', (req, res) => {
         return;
       }
       
-      // Validate manual slug
+      // Validate manual slug (allow letters, numbers, dash, dot)
       if (slugType === 'manual') {
         if (!manualSlug) {
           error.textContent = 'Please enter a custom slug';
@@ -298,8 +344,8 @@ app.get('/link-master', (req, res) => {
           error.classList.remove('hide');
           return;
         }
-        if (!/^[a-z0-9-]+$/.test(manualSlug)) {
-          error.textContent = 'Slug can only contain letters, numbers, and dash (-)';
+        if (!/^[a-z0-9.-]+$/.test(manualSlug)) {
+          error.textContent = 'Slug can only contain letters, numbers, dash (-) and dot (.)';
           error.classList.remove('hide');
           return;
         }
@@ -313,6 +359,9 @@ app.get('/link-master', (req, res) => {
         if (slugType === 'manual') {
           payload.custom_slug = manualSlug;
         }
+        if (ogTitle) payload.og_title = ogTitle;
+        if (ogDesc) payload.og_description = ogDesc;
+        if (uploadedImageBase64) payload.og_image_base64 = uploadedImageBase64;
         
         const res = await fetch('/api/shortlink', {
           method: 'POST',
@@ -1316,33 +1365,78 @@ Allow: /
 `)
 })
 
+// Helper to upload image for public API
+async function uploadPublicImage(base64Data) {
+  try {
+    const bucket = process.env.OG_IMAGE_BUCKET || 'og-images'
+    
+    // Extract base64 content and content type
+    const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/)
+    if (!matches) return null
+    
+    const contentType = matches[1]
+    const base64Content = matches[2]
+    const buffer = Buffer.from(base64Content, 'base64')
+    
+    // Size check (max 2.5MB)
+    if (buffer.length > 2500000) return null
+    
+    // Determine extension
+    let ext = 'jpg'
+    if (contentType === 'image/png') ext = 'png'
+    else if (contentType === 'image/webp') ext = 'webp'
+    else if (contentType === 'image/gif') ext = 'gif'
+    
+    const path = `public/${new Date().toISOString().slice(0, 10)}/${nanoid(12)}.${ext}`
+    
+    const { error: uploadErr } = await supabase.storage.from(bucket).upload(path, buffer, {
+      contentType,
+      upsert: false,
+    })
+    
+    if (uploadErr) return null
+    
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+    return data?.publicUrl || null
+  } catch (e) {
+    console.error('Image upload error:', e)
+    return null
+  }
+}
+
 // Public Shortlink API (no auth required) - Step 1
 app.post('/api/shortlink', async (req, res) => {
   try {
-    const { url, custom_slug } = req.body
+    const { url, custom_slug, og_title, og_description, og_image_base64 } = req.body
     
     if (!url) {
       return res.status(400).json({ error: 'URL is required' })
     }
     
-    // Validate custom slug if provided
+    // Upload image if provided
+    let ogImageUrl = null
+    if (og_image_base64) {
+      ogImageUrl = await uploadPublicImage(og_image_base64)
+    }
+    
+    // Validate custom slug if provided (allow letters, numbers, dash, dot)
     if (custom_slug) {
       const slug = custom_slug.toLowerCase().trim().replace(/ /g, '-')
       if (slug.length < 2) {
         return res.status(400).json({ error: 'Slug must be at least 2 characters' })
       }
-      if (!/^[a-z0-9-]+$/.test(slug)) {
-        return res.status(400).json({ error: 'Slug can only contain letters, numbers, and dash (-)' })
+      if (!/^[a-z0-9.-]+$/.test(slug)) {
+        return res.status(400).json({ error: 'Slug can only contain letters, numbers, dash (-) and dot (.)' })
       }
       
       // Try to create with custom slug
       try {
         const link = await createLink({
           slug,
-          title: 'Shortlink',
-          og_title: null,
-          og_description: null,
-          og_image_url: null,
+          title: og_title || 'Shortlink',
+          og_title: og_title || null,
+          og_description: og_description || null,
+          og_image_url: ogImageUrl,
           is_active: true,
           mode: 'single',
           primary_url: url,
@@ -1373,10 +1467,10 @@ app.post('/api/shortlink', async (req, res) => {
         const slug = nanoid(slugLength)
         link = await createLink({
           slug,
-          title: 'Shortlink',
-          og_title: null,
-          og_description: null,
-          og_image_url: null,
+          title: og_title || 'Shortlink',
+          og_title: og_title || null,
+          og_description: og_description || null,
+          og_image_url: ogImageUrl,
           is_active: true,
           mode: 'single',
           primary_url: url,
