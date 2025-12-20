@@ -182,8 +182,8 @@ app.get('/link-master', (req, res) => {
             </label>
           </div>
           <div id="manual-slug-box" class="hide" style="margin-top:8px;">
-            <input type="text" id="manual-slug" placeholder="Enter custom slug (2-8 characters)" style="width:100%; padding:12px 14px; border:1px solid rgba(139,92,246,0.5); border-radius:10px; background:rgba(139,92,246,0.15); color:#fff; font-size:0.95rem;" />
-            <p style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:6px;">⚠️ Only letters, numbers, dash (-). Min 2, Max 8 characters.</p>
+            <input type="text" id="manual-slug" placeholder="Enter custom slug (min 2 characters)" style="width:100%; padding:12px 14px; border:1px solid rgba(139,92,246,0.5); border-radius:10px; background:rgba(139,92,246,0.15); color:#fff; font-size:0.95rem;" />
+            <p style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:6px;">⚠️ Letters, numbers only. Min 2 characters. Spaces auto-convert to dash (-).</p>
           </div>
         </div>
         
@@ -201,25 +201,32 @@ app.get('/link-master', (req, res) => {
 
       <div class="arrow-down">↓</div>
 
-      <!-- STEP 2: Facebook Post URL -->
+      <!-- STEP 2: Post on Facebook -->
       <div class="step-card step2">
         <div class="step-header">
           <span class="step-num">2</span>
-          <span class="step-title">📘 Facebook Post URL</span>
+          <span class="step-title">📘 Post on Facebook</span>
         </div>
-        <p class="step-desc">After posting on Facebook, copy the post URL and paste it here.</p>
-        <input type="url" id="fb-url" placeholder="https://www.facebook.com/your-page/posts/..." />
+        <p class="step-desc">Post the shortlink from Step 1 on your Facebook page. Then copy the Facebook post URL for Step 3.</p>
+        <div style="background:rgba(24,119,242,0.2); border-radius:10px; padding:14px; font-size:0.85rem; color:rgba(255,255,255,0.8);">
+          💡 <strong>Tip:</strong> After posting, click on the post's timestamp to get the direct URL.
+        </div>
       </div>
 
       <div class="arrow-down">↓</div>
 
-      <!-- STEP 3: Shopee Affiliate -->
+      <!-- STEP 3: Create Link Master -->
       <div class="step-card step3">
         <div class="step-header">
           <span class="step-num">3</span>
-          <span class="step-title">🛒 Shopee Affiliate URL</span>
+          <span class="step-title">👑 Create Link Master</span>
         </div>
-        <p class="step-desc">Paste your Shopee affiliate link. This is the final destination.</p>
+        <p class="step-desc">Enter both URLs below to create your Link Master.</p>
+        
+        <label style="font-size:0.8rem; color:rgba(255,255,255,0.7); margin-bottom:6px; display:block;">📘 Facebook Post URL (from Step 2) <span style="color:#ef4444;">*Required</span></label>
+        <input type="url" id="fb-url-final" placeholder="Paste your Facebook post URL here..." style="margin-bottom:14px;" />
+        
+        <label style="font-size:0.8rem; color:rgba(255,255,255,0.7); margin-bottom:6px; display:block;">🛒 Shopee Affiliate URL (Final Destination) <span style="color:#ef4444;">*Required</span></label>
         <input type="url" id="shopee-url" placeholder="https://shopee.com.my/... or https://s.shopee.com.my/..." />
         
         <div id="final-error" class="error hide"></div>
@@ -254,6 +261,11 @@ app.get('/link-master', (req, res) => {
         }
       });
     });
+    
+    // Auto-convert spaces to dashes in manual slug
+    document.getElementById('manual-slug').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/ /g, '-').toLowerCase();
+    });
 
     // Step 1: Create basic shortlink
     document.getElementById('btn-step1').addEventListener('click', async () => {
@@ -283,11 +295,6 @@ app.get('/link-master', (req, res) => {
         }
         if (manualSlug.length < 2) {
           error.textContent = 'Slug must be at least 2 characters';
-          error.classList.remove('hide');
-          return;
-        }
-        if (manualSlug.length > 8) {
-          error.textContent = 'Slug must be maximum 8 characters';
           error.classList.remove('hide');
           return;
         }
@@ -333,7 +340,7 @@ app.get('/link-master', (req, res) => {
 
     // Final Step: Create Link Master
     document.getElementById('btn-final').addEventListener('click', async () => {
-      const fbUrl = document.getElementById('fb-url').value.trim();
+      const fbUrl = document.getElementById('fb-url-final').value.trim();
       const shopeeUrl = document.getElementById('shopee-url').value.trim();
       const btn = document.getElementById('btn-final');
       const output = document.getElementById('final-output');
@@ -1320,12 +1327,9 @@ app.post('/api/shortlink', async (req, res) => {
     
     // Validate custom slug if provided
     if (custom_slug) {
-      const slug = custom_slug.toLowerCase().trim()
+      const slug = custom_slug.toLowerCase().trim().replace(/ /g, '-')
       if (slug.length < 2) {
         return res.status(400).json({ error: 'Slug must be at least 2 characters' })
-      }
-      if (slug.length > 8) {
-        return res.status(400).json({ error: 'Slug must be maximum 8 characters' })
       }
       if (!/^[a-z0-9-]+$/.test(slug)) {
         return res.status(400).json({ error: 'Slug can only contain letters, numbers, and dash (-)' })
