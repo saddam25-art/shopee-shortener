@@ -520,10 +520,14 @@ redirectRouter.get('/go/:slug', async (req, res) => {
       ? `intent://${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}#Intent;scheme=https;package=${appConfig.androidPackage};S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`
       : targetUrl
 
+    // Link Master: Use facebook_url for OG preview if available
+    const ogUrl = link.facebook_url || targetUrl
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Cache-Control', 'no-store')
     res.setHeader('X-Redirect-Mode', 'deeplink')
     res.setHeader('X-App-Type', appType)
+    if (link.facebook_url) res.setHeader('X-Link-Master', 'true')
 
     // Aggressive deep link landing page
     return res.status(200).send(`<!doctype html>
@@ -534,7 +538,7 @@ redirectRouter.get('/go/:slug', async (req, res) => {
   <title>Opening ${escapeHtml(appConfig.name)}...</title>
   <meta property="og:title" content="${escapeHtml(link.og_title || appConfig.name + ' Link')}" />
   <meta property="og:description" content="${escapeHtml(link.og_description || 'Tap to open in ' + appConfig.name + ' app')}" />
-  <meta property="og:url" content="${escapeHtml(targetUrl)}" />
+  <meta property="og:url" content="${escapeHtml(ogUrl)}" />
   ${link.og_image_url ? `<meta property="og:image" content="${escapeHtml(link.og_image_url)}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />` : ''}

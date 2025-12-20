@@ -568,6 +568,38 @@ app.get('/admin', (req, res) => {
             </div>
             <span id="status" class="status" style="margin-top:10px; display:block;"></span>
           </div>
+
+          <div class="card hide" id="linkMasterCard">
+            <h2>👑 Link Master</h2>
+            <p class="muted" style="margin-bottom:16px">Facebook Post + Shopee Affiliate = Maximum Reach!</p>
+            
+            <div style="background:rgba(24,119,242,0.1); border:1px solid rgba(24,119,242,0.3); border-radius:12px; padding:16px; margin-bottom:16px;">
+              <label style="color:#1877f2; margin-bottom:8px; display:block;">📘 Step 1: Facebook Post URL</label>
+              <input id="lmFacebookUrl" type="url" placeholder="https://www.facebook.com/..." style="margin-bottom:8px;" />
+              <p class="muted" style="font-size:10px; margin:0;">Paste the Facebook post URL that contains your product promotion</p>
+            </div>
+            
+            <div style="background:rgba(238,77,45,0.1); border:1px solid rgba(238,77,45,0.3); border-radius:12px; padding:16px; margin-bottom:16px;">
+              <label style="color:#ee4d2d; margin-bottom:8px; display:block;">🛒 Step 2: Shopee Affiliate URL</label>
+              <input id="lmShopeeUrl" type="url" placeholder="https://shopee.com.my/... or https://s.shopee.com.my/..." style="margin-bottom:8px;" />
+              <p class="muted" style="font-size:10px; margin:0;">This is where users will be redirected (opens Shopee app directly)</p>
+            </div>
+            
+            <div class="actions">
+              <button id="createLinkMaster" class="primary" type="button">👑 Create Link Master</button>
+            </div>
+            
+            <div id="linkMasterResult" class="hide" style="margin-top:16px; padding:16px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); border-radius:12px;">
+              <label style="color:#ffd700; margin:0 0 8px; display:block;">👑 Link Master Ready!</label>
+              <input id="linkMasterOutput" type="text" readonly style="background:rgba(0,0,0,0.3); margin-bottom:8px;" />
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="copyLinkMaster" type="button">📋 Copy</button>
+                <a id="testLinkMaster" href="#" target="_blank" style="padding:10px 14px; border-radius:12px; background:rgba(255,255,255,.08); color:inherit; text-decoration:none; font-size:13px; border:1px solid rgba(255,255,255,.14);">🧪 Test</a>
+              </div>
+              <p class="muted" style="margin-top:10px; font-size:11px;">✨ Shows Facebook preview → Opens Shopee app!</p>
+            </div>
+            <span id="linkMasterStatus" class="status" style="margin-top:10px; display:block;"></span>
+          </div>
         </div>
 
         <div>
@@ -625,6 +657,7 @@ app.get('/admin', (req, res) => {
       const signedIn = !!user;
       $('authCard').classList.toggle('hide', signedIn);
       $('createCard').classList.toggle('hide', !signedIn);
+      $('linkMasterCard').classList.toggle('hide', !signedIn);
       $('linksCard').classList.toggle('hide', !signedIn);
       $('meChip').textContent = signedIn ? ('Signed in: ' + user.username) : 'Not signed in';
     }
@@ -805,6 +838,82 @@ app.get('/admin', (req, res) => {
       navigator.clipboard.writeText(url).then(() => {
         $('copyCreatedLink').textContent = '✓ Copied!';
         setTimeout(() => { $('copyCreatedLink').textContent = '📋 Copy Link'; }, 2000);
+      });
+    });
+
+    // Link Master functionality
+    function setLinkMasterStatus(msg) {
+      $('linkMasterStatus').textContent = msg;
+    }
+
+    async function createLinkMaster() {
+      const fbUrl = $('lmFacebookUrl').value.trim();
+      const shopeeUrl = $('lmShopeeUrl').value.trim();
+      
+      if (!fbUrl) {
+        setLinkMasterStatus('Please enter Facebook Post URL');
+        return;
+      }
+      
+      if (!fbUrl.includes('facebook.com') && !fbUrl.includes('fb.com') && !fbUrl.includes('fb.me')) {
+        setLinkMasterStatus('Please enter a valid Facebook URL');
+        return;
+      }
+      
+      if (!shopeeUrl) {
+        setLinkMasterStatus('Please enter Shopee Affiliate URL');
+        return;
+      }
+      
+      if (!shopeeUrl.includes('shopee')) {
+        setLinkMasterStatus('Please enter a valid Shopee URL');
+        return;
+      }
+
+      setLinkMasterStatus('Creating Link Master...');
+      $('createLinkMaster').disabled = true;
+      
+      try {
+        const payload = {
+          mode: 'single',
+          primary_url: shopeeUrl,
+          og_title: 'Shopee Deal',
+          og_description: 'Tap to view this amazing deal!',
+          is_active: true,
+          facebook_url: fbUrl
+        };
+
+        const res = await api('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data && data.error ? data.error : 'Create failed');
+
+        const slug = data.link && data.link.slug ? data.link.slug : '';
+        const linkMasterUrl = trimTrailingSlash(baseUrl) + '/go/' + encodeURIComponent(slug);
+        
+        $('linkMasterOutput').value = linkMasterUrl;
+        $('testLinkMaster').href = linkMasterUrl;
+        $('linkMasterResult').classList.remove('hide');
+        setLinkMasterStatus('');
+        await refreshList();
+      } catch (e) {
+        setLinkMasterStatus(String(e && e.message ? e.message : e));
+      } finally {
+        $('createLinkMaster').disabled = false;
+      }
+    }
+
+    $('createLinkMaster').addEventListener('click', createLinkMaster);
+    
+    $('copyLinkMaster').addEventListener('click', () => {
+      const url = $('linkMasterOutput').value;
+      navigator.clipboard.writeText(url).then(() => {
+        $('copyLinkMaster').textContent = '✓ Copied!';
+        setTimeout(() => { $('copyLinkMaster').textContent = '📋 Copy'; }, 2000);
       });
     });
 

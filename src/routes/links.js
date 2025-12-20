@@ -50,6 +50,7 @@ const CreateSchema = z.object({
   android_url: z.string().url().optional(),
   ios_url: z.string().url().optional(),
   desktop_url: z.string().url().optional(),
+  facebook_url: z.string().url().optional(),
   mode: z.enum(['single', 'rotate']).default('single'),
   is_active: z.boolean().default(true),
   utm_defaults: z
@@ -85,6 +86,7 @@ linksRouter.post('/', async (req, res) => {
           android_url: body.android_url || null,
           ios_url: body.ios_url || null,
           desktop_url: body.desktop_url || null,
+          facebook_url: body.facebook_url || null,
           utm_defaults: body.utm_defaults || {},
         })
         break
