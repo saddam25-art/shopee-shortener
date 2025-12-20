@@ -167,10 +167,27 @@ app.get('/link-master', (req, res) => {
           <span class="step-title">🔗 Create Shortlink First</span>
         </div>
         <p class="step-desc">Paste any URL to create a shortlink. Use this shortlink for your Facebook post.</p>
-        <div class="input-row">
-          <input type="url" id="any-url" placeholder="Paste any URL here..." />
-          <button class="btn btn-purple" id="btn-step1">Create</button>
+        <input type="url" id="any-url" placeholder="Paste any URL here..." style="margin-bottom:12px;" />
+        
+        <div class="slug-options" style="margin-bottom:12px;">
+          <label style="font-size:0.85rem; color:rgba(255,255,255,0.8); margin-bottom:8px; display:block;">Slug Option:</label>
+          <div style="display:flex; gap:16px; margin-bottom:10px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+              <input type="radio" name="slug-type" value="auto" checked style="accent-color:#8b5cf6;" />
+              <span>🎲 Auto Slug</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+              <input type="radio" name="slug-type" value="manual" style="accent-color:#8b5cf6;" />
+              <span>✏️ Manual Slug</span>
+            </label>
+          </div>
+          <div id="manual-slug-box" class="hide" style="margin-top:8px;">
+            <input type="text" id="manual-slug" placeholder="Enter custom slug (2-8 characters)" style="width:100%; padding:12px 14px; border:1px solid rgba(139,92,246,0.5); border-radius:10px; background:rgba(139,92,246,0.15); color:#fff; font-size:0.95rem;" />
+            <p style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:6px;">⚠️ Only letters, numbers, dash (-). Min 2, Max 8 characters.</p>
+          </div>
         </div>
+        
+        <button class="btn btn-purple" id="btn-step1" style="width:100%;">🔗 Create Shortlink</button>
         <div id="step1-output" class="output hide">
           <span class="output-label">✅ Shortlink Created!</span>
           <div class="output-row">
@@ -225,9 +242,24 @@ app.get('/link-master', (req, res) => {
   </footer>
 
   <script>
+    // Toggle manual slug input
+    document.querySelectorAll('input[name="slug-type"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const manualBox = document.getElementById('manual-slug-box');
+        if (e.target.value === 'manual') {
+          manualBox.classList.remove('hide');
+        } else {
+          manualBox.classList.add('hide');
+          document.getElementById('manual-slug').value = '';
+        }
+      });
+    });
+
     // Step 1: Create basic shortlink
     document.getElementById('btn-step1').addEventListener('click', async () => {
       const url = document.getElementById('any-url').value.trim();
+      const slugType = document.querySelector('input[name="slug-type"]:checked').value;
+      const manualSlug = document.getElementById('manual-slug').value.trim().toLowerCase();
       const btn = document.getElementById('btn-step1');
       const output = document.getElementById('step1-output');
       const result = document.getElementById('step1-result');
@@ -242,14 +274,43 @@ app.get('/link-master', (req, res) => {
         return;
       }
       
+      // Validate manual slug
+      if (slugType === 'manual') {
+        if (!manualSlug) {
+          error.textContent = 'Please enter a custom slug';
+          error.classList.remove('hide');
+          return;
+        }
+        if (manualSlug.length < 2) {
+          error.textContent = 'Slug must be at least 2 characters';
+          error.classList.remove('hide');
+          return;
+        }
+        if (manualSlug.length > 8) {
+          error.textContent = 'Slug must be maximum 8 characters';
+          error.classList.remove('hide');
+          return;
+        }
+        if (!/^[a-z0-9-]+$/.test(manualSlug)) {
+          error.textContent = 'Slug can only contain letters, numbers, and dash (-)';
+          error.classList.remove('hide');
+          return;
+        }
+      }
+      
       btn.disabled = true;
-      btn.textContent = '⏳...';
+      btn.textContent = '⏳ Creating...';
       
       try {
+        const payload = { url };
+        if (slugType === 'manual') {
+          payload.custom_slug = manualSlug;
+        }
+        
         const res = await fetch('/api/shortlink', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed');
@@ -260,7 +321,7 @@ app.get('/link-master', (req, res) => {
         error.classList.remove('hide');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Create';
+        btn.textContent = '🔗 Create Shortlink';
       }
     });
     
@@ -1251,12 +1312,56 @@ Allow: /
 // Public Shortlink API (no auth required) - Step 1
 app.post('/api/shortlink', async (req, res) => {
   try {
-    const { url } = req.body
+    const { url, custom_slug } = req.body
     
     if (!url) {
       return res.status(400).json({ error: 'URL is required' })
     }
     
+    // Validate custom slug if provided
+    if (custom_slug) {
+      const slug = custom_slug.toLowerCase().trim()
+      if (slug.length < 2) {
+        return res.status(400).json({ error: 'Slug must be at least 2 characters' })
+      }
+      if (slug.length > 8) {
+        return res.status(400).json({ error: 'Slug must be maximum 8 characters' })
+      }
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        return res.status(400).json({ error: 'Slug can only contain letters, numbers, and dash (-)' })
+      }
+      
+      // Try to create with custom slug
+      try {
+        const link = await createLink({
+          slug,
+          title: 'Shortlink',
+          og_title: null,
+          og_description: null,
+          og_image_url: null,
+          is_active: true,
+          mode: 'single',
+          primary_url: url,
+          facebook_url: null,
+          android_url: null,
+          ios_url: null,
+          desktop_url: null,
+          utm_defaults: {},
+        })
+        
+        const baseUrl = process.env.BASE_URL || 'https://see--moor.re'
+        const resultUrl = baseUrl + '/' + link.slug
+        return res.status(201).json({ url: resultUrl, slug: link.slug })
+      } catch (err) {
+        const code = err && typeof err === 'object' && 'code' in err ? err.code : null
+        if (code === '23505') {
+          return res.status(400).json({ error: 'Slug "' + slug + '" already exists. Please choose another.' })
+        }
+        throw err
+      }
+    }
+    
+    // Auto-generate slug
     const slugLength = 7
     let link
     for (let attempt = 0; attempt < 5; attempt++) {
