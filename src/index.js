@@ -532,7 +532,7 @@ app.get('/admin', (req, res) => {
                 <label>&nbsp;</label>
                 <div class="actions" style="margin-top: 0;">
                   <button id="uploadImage" type="button">Upload</button>
-                  <span class="muted">Auto-resize to <code>940×788</code>.</span>
+                  <span class="muted">Auto-resize to <code>1200×630</code>.</span>
                 </div>
               </div>
             </div>
@@ -814,8 +814,8 @@ app.get('/admin', (req, res) => {
       setStatus('Uploading image...');
 
       try {
-        const TARGET_W = 940;
-        const TARGET_H = 788;
+        const TARGET_W = 1200;
+        const TARGET_H = 630;
 
         const imgUrl = URL.createObjectURL(file);
         const img = new Image();

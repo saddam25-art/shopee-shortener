@@ -102,8 +102,8 @@ function renderOgPreviewHtml({ title, description, imageUrl, canonicalUrl, desti
   <meta property="og:description" content="${safeDescription}" />
   <meta property="og:url" content="${safeCanonical}" />
   ${safeImage ? `<meta property="og:image" content="${safeImage}" />
-  <meta property="og:image:width" content="940" />
-  <meta property="og:image:height" content="788" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:image:type" content="image/jpeg" />` : ''}
   <meta name="twitter:card" content="${safeImage ? 'summary_large_image' : 'summary'}" />
   <meta name="twitter:title" content="${safeTitle}" />
@@ -536,8 +536,8 @@ redirectRouter.get('/go/:slug', async (req, res) => {
   <meta property="og:description" content="${escapeHtml(link.og_description || 'Tap to open in ' + appConfig.name + ' app')}" />
   <meta property="og:url" content="${escapeHtml(targetUrl)}" />
   ${link.og_image_url ? `<meta property="og:image" content="${escapeHtml(link.og_image_url)}" />
-  <meta property="og:image:width" content="940" />
-  <meta property="og:image:height" content="788" />` : ''}
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />` : ''}
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, ${appConfig.color1} 0%, ${appConfig.color2} 100%); display: flex; align-items: center; justify-content: center; }

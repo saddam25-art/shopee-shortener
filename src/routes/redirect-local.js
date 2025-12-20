@@ -71,8 +71,8 @@ redirectRouterLocal.get('/:slug', async (req, res) => {
   <meta property="og:title" content="${link.og_title || 'Shopee'}" />
   <meta property="og:description" content="${link.og_description || ''}" />
   ${link.og_image_url ? `<meta property="og:image" content="${link.og_image_url}" />
-  <meta property="og:image:width" content="940" />
-  <meta property="og:image:height" content="788" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:image:type" content="image/jpeg" />` : ''}
   <meta property="og:url" content="${link.default_url}" />
   <meta http-equiv="refresh" content="0;url=${link.default_url}" />
