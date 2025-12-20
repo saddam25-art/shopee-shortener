@@ -479,78 +479,8 @@ app.get('/admin', (req, res) => {
           </div>
 
           <div class="card hide" id="createCard">
-            <h2>Create Link</h2>
-            <div class="row">
-              <div>
-                <label>Destination URL</label>
-                <input id="primaryUrl" type="url" placeholder="https://..." required />
-              </div>
-              <div>
-                <label>Title (optional)</label>
-                <input id="title" type="text" placeholder="Internal title" />
-              </div>
-            </div>
-
-            <div class="row3">
-              <div>
-                <label>Mode</label>
-                <select id="mode">
-                  <option value="single" selected>single</option>
-                  <option value="rotate">rotate</option>
-                </select>
-              </div>
-              <div>
-                <label>Active</label>
-                <select id="isActive">
-                  <option value="true" selected>true</option>
-                  <option value="false">false</option>
-                </select>
-              </div>
-              <div>
-                <label>Slug Length</label>
-                <input type="text" value="(configured on server)" readonly />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>OG Title</label>
-                <input id="ogTitle" type="text" placeholder="Shown in WhatsApp/FB preview" />
-              </div>
-              <div>
-                <label>OG Image URL</label>
-                <input id="ogImageUrl" type="url" placeholder="https://...jpg/png" />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>Upload Image (Supabase Storage)</label>
-                <input id="ogImageFile" type="file" accept="image/*" />
-              </div>
-              <div>
-                <label>&nbsp;</label>
-                <div class="actions" style="margin-top: 0;">
-                  <button id="uploadImage" type="button">Upload</button>
-                  <span class="muted">Auto-resize to <code>1200×630</code>.</span>
-                </div>
-              </div>
-            </div>
-
-            <label>OG Description</label>
-            <textarea id="ogDescription" placeholder="Shown in preview"></textarea>
-
-            <div class="actions">
-              <button id="create" class="primary" type="button">Create</button>
-              <button id="refresh" type="button">Refresh List</button>
-              <button id="logout" class="ghost" type="button">Logout</button>
-              <span id="status" class="status"></span>
-            </div>
-          </div>
-
-          <div class="card hide" id="deepLinkCard">
             <h2>🚀 App Linking for Marketers</h2>
-            <p class="muted" style="margin-bottom:12px">Instantly create deep links for any app and use in any marketing channel</p>
+            <p class="muted" style="margin-bottom:16px">Instantly create deep links for any app. No SDK required.</p>
             
             <label>Select App</label>
             <div class="app-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px;">
@@ -582,29 +512,61 @@ app.get('/admin', (req, res) => {
                 <div style="font-size:24px;">🐦</div>
                 <div style="font-size:11px; margin-top:4px; color:inherit;">X/Twitter</div>
               </button>
-              <button type="button" class="app-btn" data-app="other" style="padding:12px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); cursor:pointer; text-align:center; transition:all .2s;">
-                <div style="font-size:24px;">🔗</div>
-                <div style="font-size:11px; margin-top:4px; color:inherit;">Other</div>
-              </button>
             </div>
             
-            <label id="deepLinkUrlLabel">App Link / URL</label>
-            <input id="deepLinkUrl" type="url" placeholder="Paste your link here..." />
-            <p class="muted" id="deepLinkHint" style="margin:6px 0 12px; font-size:11px;">Supports: shopee.com.my, s.shopee.com.my</p>
+            <label id="deepLinkUrlLabel">Destination URL</label>
+            <input id="primaryUrl" type="url" placeholder="Paste your app link here..." />
+            <p class="muted" id="deepLinkHint" style="margin:6px 0 16px; font-size:11px;">Supports: shopee.com.my, s.shopee.com.my</p>
             
-            <div class="actions">
-              <button id="generateDeepLink" class="primary" type="button">⚡ Generate Deep Link</button>
-            </div>
-            <div id="deepLinkResult" class="hide" style="margin-top:12px; padding:12px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); border-radius:12px;">
-              <label style="color:#22c55e; margin:0 0 8px;">✅ Deep Link Ready!</label>
-              <input id="deepLinkOutput" type="text" readonly style="background:rgba(0,0,0,0.3);" />
-              <div class="actions" style="margin-top:8px;">
-                <button id="copyDeepLink" type="button">📋 Copy</button>
-                <a id="testDeepLink" href="#" target="_blank" style="padding:10px 14px; border-radius:12px; background:rgba(255,255,255,.08); color:inherit; text-decoration:none; font-size:13px;">🧪 Test</a>
+            <div style="border-top:1px solid rgba(255,255,255,.1); padding-top:16px; margin-top:8px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; cursor:pointer;" onclick="document.getElementById('advancedOptions').classList.toggle('hide'); this.querySelector('span').textContent = document.getElementById('advancedOptions').classList.contains('hide') ? '▶' : '▼';">
+                <span style="font-size:10px;">▶</span>
+                <label style="margin:0; cursor:pointer; font-size:12px;">Advanced Options (OG Image for Social Preview)</label>
               </div>
-              <p class="muted" style="margin-top:10px; font-size:11px;">📱 Share this link on Facebook, Instagram, WhatsApp, Email, SMS - Opens app directly!</p>
+              <div id="advancedOptions" class="hide">
+                <div class="row" style="margin-bottom:12px;">
+                  <div>
+                    <label style="font-size:11px;">OG Title</label>
+                    <input id="ogTitle" type="text" placeholder="Preview title" style="padding:8px 10px;" />
+                  </div>
+                  <div>
+                    <label style="font-size:11px;">OG Description</label>
+                    <input id="ogDescription" type="text" placeholder="Preview description" style="padding:8px 10px;" />
+                  </div>
+                </div>
+                <div class="row">
+                  <div>
+                    <label style="font-size:11px;">Upload Image</label>
+                    <input id="ogImageFile" type="file" accept="image/*" style="padding:6px;" />
+                  </div>
+                  <div>
+                    <label style="font-size:11px;">&nbsp;</label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <button id="uploadImage" type="button" style="padding:8px 12px;">Upload</button>
+                      <span class="muted" style="font-size:10px;">1200×630px</span>
+                    </div>
+                  </div>
+                </div>
+                <input id="ogImageUrl" type="hidden" />
+              </div>
             </div>
-            <span id="deepLinkStatus" class="status"></span>
+            
+            <div class="actions" style="margin-top:16px;">
+              <button id="create" class="primary" type="button">⚡ Create Deep Link</button>
+              <button id="refresh" type="button">Refresh</button>
+              <button id="logout" class="ghost" type="button">Logout</button>
+            </div>
+            
+            <div id="createResult" class="hide" style="margin-top:16px; padding:16px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); border-radius:12px;">
+              <label style="color:#22c55e; margin:0 0 8px; display:block;">✅ Deep Link Ready!</label>
+              <input id="createdLinkOutput" type="text" readonly style="background:rgba(0,0,0,0.3); margin-bottom:8px;" />
+              <div style="display:flex; gap:8px;">
+                <button id="copyCreatedLink" type="button">📋 Copy Link</button>
+                <a id="testCreatedLink" href="#" target="_blank" style="padding:10px 14px; border-radius:12px; background:rgba(255,255,255,.08); color:inherit; text-decoration:none; font-size:13px; border:1px solid rgba(255,255,255,.14);">🧪 Test</a>
+              </div>
+              <p class="muted" style="margin-top:10px; font-size:11px;">📱 Share on Facebook, Instagram, WhatsApp - Opens app directly!</p>
+            </div>
+            <span id="status" class="status" style="margin-top:10px; display:block;"></span>
           </div>
         </div>
 
@@ -664,7 +626,6 @@ app.get('/admin', (req, res) => {
       $('authCard').classList.toggle('hide', signedIn);
       $('createCard').classList.toggle('hide', !signedIn);
       $('linksCard').classList.toggle('hide', !signedIn);
-      $('deepLinkCard').classList.toggle('hide', !signedIn);
       $('meChip').textContent = signedIn ? ('Signed in: ' + user.username) : 'Not signed in';
     }
 
@@ -755,20 +716,65 @@ app.get('/admin', (req, res) => {
       }
     }
 
+    // App configurations
+    const APP_CONFIG = {
+      shopee: { name: 'Shopee', hint: 'Supports: shopee.com.my, s.shopee.com.my', validate: (url) => url.includes('shopee'), color: 'rgba(238,77,45,0.2)' },
+      lazada: { name: 'Lazada', hint: 'Supports: lazada.com.my, lzd.co', validate: (url) => url.includes('lazada') || url.includes('lzd.co'), color: 'rgba(13,0,255,0.2)' },
+      tiktok: { name: 'TikTok', hint: 'Supports: tiktok.com, vm.tiktok.com', validate: (url) => url.includes('tiktok'), color: 'rgba(0,0,0,0.3)' },
+      instagram: { name: 'Instagram', hint: 'Supports: instagram.com', validate: (url) => url.includes('instagram'), color: 'rgba(225,48,108,0.2)' },
+      facebook: { name: 'Facebook', hint: 'Supports: facebook.com, fb.me', validate: (url) => url.includes('facebook') || url.includes('fb.'), color: 'rgba(24,119,242,0.2)' },
+      youtube: { name: 'YouTube', hint: 'Supports: youtube.com, youtu.be', validate: (url) => url.includes('youtube') || url.includes('youtu.be'), color: 'rgba(255,0,0,0.2)' },
+      twitter: { name: 'X/Twitter', hint: 'Supports: twitter.com, x.com', validate: (url) => url.includes('twitter') || url.includes('x.com'), color: 'rgba(0,0,0,0.3)' }
+    };
+    let selectedApp = 'shopee';
+
+    function updateAppUI() {
+      const config = APP_CONFIG[selectedApp];
+      if (config) {
+        $('deepLinkHint').textContent = config.hint;
+      }
+      document.querySelectorAll('.app-btn').forEach(btn => {
+        const app = btn.dataset.app;
+        const isSelected = app === selectedApp;
+        btn.style.borderColor = isSelected ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.1)';
+        btn.style.background = isSelected ? (APP_CONFIG[app]?.color || 'rgba(255,255,255,.1)') : 'rgba(255,255,255,.05)';
+      });
+    }
+
+    document.querySelectorAll('.app-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedApp = btn.dataset.app;
+        updateAppUI();
+        $('createResult').classList.add('hide');
+      });
+    });
+
     async function createLink() {
-      setStatus('Creating...');
+      const url = $('primaryUrl').value.trim();
+      const config = APP_CONFIG[selectedApp];
+      
+      if (!url) {
+        setStatus('Please enter a destination URL');
+        return;
+      }
+      
+      if (config && !config.validate(url)) {
+        setStatus('Please enter a valid ' + config.name + ' link');
+        return;
+      }
+
+      setStatus('Creating deep link...');
+      $('create').disabled = true;
+      
       try {
         const payload = {
-          mode: $('mode').value,
-          primary_url: $('primaryUrl').value.trim(),
-          title: $('title').value.trim() || undefined,
-          og_title: $('ogTitle').value.trim() || undefined,
-          og_description: $('ogDescription').value.trim() || undefined,
+          mode: 'single',
+          primary_url: url,
+          og_title: $('ogTitle').value.trim() || (config ? config.name + ' Link' : 'Link'),
+          og_description: $('ogDescription').value.trim() || (config ? 'Tap to open in ' + config.name + ' app' : 'Open link'),
           og_image_url: $('ogImageUrl').value.trim() || undefined,
-          is_active: $('isActive').value === 'true',
+          is_active: true,
         };
-
-        if (!payload.primary_url) throw new Error('Destination URL is required');
 
         const res = await api('/api/links', {
           method: 'POST',
@@ -780,13 +786,27 @@ app.get('/admin', (req, res) => {
         if (!res.ok) throw new Error(data && data.error ? data.error : 'Create failed');
 
         const slug = data.link && data.link.slug ? data.link.slug : '';
-        const url = trimTrailingSlash(baseUrl) + '/' + encodeURIComponent(slug);
-        setStatus('Created: ' + url);
+        const deepLinkUrl = trimTrailingSlash(baseUrl) + '/go/' + encodeURIComponent(slug);
+        
+        $('createdLinkOutput').value = deepLinkUrl;
+        $('testCreatedLink').href = deepLinkUrl;
+        $('createResult').classList.remove('hide');
+        setStatus('');
         await refreshList();
       } catch (e) {
         setStatus(String(e && e.message ? e.message : e));
+      } finally {
+        $('create').disabled = false;
       }
     }
+
+    $('copyCreatedLink').addEventListener('click', () => {
+      const url = $('createdLinkOutput').value;
+      navigator.clipboard.writeText(url).then(() => {
+        $('copyCreatedLink').textContent = '✓ Copied!';
+        setTimeout(() => { $('copyCreatedLink').textContent = '📋 Copy Link'; }, 2000);
+      });
+    });
 
     $('refresh').addEventListener('click', refreshList);
     $('create').addEventListener('click', createLink);
@@ -877,175 +897,6 @@ app.get('/admin', (req, res) => {
     }
 
     $('uploadImage').addEventListener('click', uploadOgImage);
-
-    // App Linking for Marketers
-    const APP_CONFIG = {
-      shopee: {
-        name: 'Shopee',
-        icon: '🛒',
-        hint: 'Supports: shopee.com.my, s.shopee.com.my',
-        placeholder: 'https://shopee.com.my/... or https://s.shopee.com.my/...',
-        validate: (url) => url.includes('shopee'),
-        color: 'rgba(238,77,45,0.2)'
-      },
-      lazada: {
-        name: 'Lazada',
-        icon: '🛍️',
-        hint: 'Supports: lazada.com.my, lzd.co',
-        placeholder: 'https://www.lazada.com.my/... or https://lzd.co/...',
-        validate: (url) => url.includes('lazada') || url.includes('lzd.co'),
-        color: 'rgba(13,0,255,0.2)'
-      },
-      tiktok: {
-        name: 'TikTok',
-        icon: '🎵',
-        hint: 'Supports: tiktok.com, vm.tiktok.com',
-        placeholder: 'https://www.tiktok.com/... or https://vm.tiktok.com/...',
-        validate: (url) => url.includes('tiktok'),
-        color: 'rgba(0,0,0,0.3)'
-      },
-      instagram: {
-        name: 'Instagram',
-        icon: '📸',
-        hint: 'Supports: instagram.com, instagr.am',
-        placeholder: 'https://www.instagram.com/...',
-        validate: (url) => url.includes('instagram') || url.includes('instagr.am'),
-        color: 'rgba(225,48,108,0.2)'
-      },
-      facebook: {
-        name: 'Facebook',
-        icon: '📘',
-        hint: 'Supports: facebook.com, fb.com, fb.me',
-        placeholder: 'https://www.facebook.com/...',
-        validate: (url) => url.includes('facebook') || url.includes('fb.com') || url.includes('fb.me'),
-        color: 'rgba(24,119,242,0.2)'
-      },
-      youtube: {
-        name: 'YouTube',
-        icon: '▶️',
-        hint: 'Supports: youtube.com, youtu.be',
-        placeholder: 'https://www.youtube.com/... or https://youtu.be/...',
-        validate: (url) => url.includes('youtube') || url.includes('youtu.be'),
-        color: 'rgba(255,0,0,0.2)'
-      },
-      twitter: {
-        name: 'X/Twitter',
-        icon: '🐦',
-        hint: 'Supports: twitter.com, x.com',
-        placeholder: 'https://twitter.com/... or https://x.com/...',
-        validate: (url) => url.includes('twitter') || url.includes('x.com'),
-        color: 'rgba(29,161,242,0.2)'
-      },
-      other: {
-        name: 'Other App',
-        icon: '🔗',
-        hint: 'Any URL - we will try to open it in the native app',
-        placeholder: 'https://...',
-        validate: (url) => url.startsWith('http'),
-        color: 'rgba(128,128,128,0.2)'
-      }
-    };
-
-    let selectedApp = 'shopee';
-
-    function setDeepLinkStatus(msg) {
-      $('deepLinkStatus').textContent = msg;
-    }
-
-    function updateAppUI() {
-      const config = APP_CONFIG[selectedApp];
-      $('deepLinkUrl').placeholder = config.placeholder;
-      $('deepLinkHint').textContent = config.hint;
-      
-      document.querySelectorAll('.app-btn').forEach(btn => {
-        const app = btn.dataset.app;
-        const isSelected = app === selectedApp;
-        btn.classList.toggle('selected', isSelected);
-        btn.style.borderColor = isSelected ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.1)';
-        btn.style.background = isSelected ? APP_CONFIG[app].color : 'rgba(255,255,255,.05)';
-      });
-    }
-
-    document.querySelectorAll('.app-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedApp = btn.dataset.app;
-        updateAppUI();
-        $('deepLinkResult').classList.add('hide');
-      });
-    });
-
-    $('generateDeepLink').addEventListener('click', async () => {
-      const url = $('deepLinkUrl').value.trim();
-      const btn = $('generateDeepLink');
-      const config = APP_CONFIG[selectedApp];
-      
-      if (!url) {
-        setDeepLinkStatus('Please enter a URL');
-        return;
-      }
-      
-      if (!config.validate(url)) {
-        setDeepLinkStatus('Please enter a valid ' + config.name + ' link');
-        return;
-      }
-      
-      btn.disabled = true;
-      btn.textContent = '⏳ Generating...';
-      setDeepLinkStatus('');
-      
-      try {
-        const res = await api('/api/links', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            primary_url: url,
-            og_title: config.name + ' Link',
-            og_description: 'Tap to open in ' + config.name + ' app',
-            mode: 'single',
-            is_active: true,
-            app_type: selectedApp
-          })
-        });
-        
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to create deep link');
-        }
-        
-        const deepLinkUrl = baseUrl + '/go/' + data.link.slug;
-        
-        $('deepLinkOutput').value = deepLinkUrl;
-        $('testDeepLink').href = deepLinkUrl;
-        $('deepLinkResult').classList.remove('hide');
-        setDeepLinkStatus('');
-        
-        await refreshList();
-        
-      } catch (e) {
-        setDeepLinkStatus('Error: ' + (e.message || e));
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '⚡ Generate Deep Link';
-      }
-    });
-
-    $('copyDeepLink').addEventListener('click', () => {
-      const url = $('deepLinkOutput').value;
-      navigator.clipboard.writeText(url).then(() => {
-        $('copyDeepLink').textContent = '✓ Copied!';
-        setTimeout(() => { $('copyDeepLink').textContent = '📋 Copy'; }, 2000);
-      }).catch(() => {
-        const input = document.createElement('input');
-        input.value = url;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        $('copyDeepLink').textContent = '✓ Copied!';
-        setTimeout(() => { $('copyDeepLink').textContent = '📋 Copy'; }, 2000);
-      });
-    });
 
     (async () => {
       const user = await refreshMe();
