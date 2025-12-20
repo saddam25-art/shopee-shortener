@@ -2,11 +2,13 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import { nanoid } from 'nanoid'
 
 import { linksRouter } from './routes/links.js'
 import { uploadsRouter } from './routes/uploads.js'
 import { redirectRouter } from './routes/redirect.js'
 import { authRouter } from './routes/auth.js'
+import { createLink } from './db/links.js'
 
 const app = express()
 
@@ -83,78 +85,62 @@ app.get('/link-master', (req, res) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Shopee Link Master</title>
+  <title>👑 Link Master - Facebook + Shopee</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, #fff7ed 0%, #fff 50%, #ffedd5 100%); }
-    header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid #fed7aa; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); }
-    .header-inner { max-width: 900px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
-    .header-logo { width: 40px; height: 40px; background: #f97316; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .header-title { font-size: 1.25rem; font-weight: 700; color: #111; }
-    .header-sub { font-size: 0.75rem; color: #666; }
-    .back-btn { margin-left: auto; padding: 8px 16px; background: #f3f4f6; border-radius: 8px; text-decoration: none; color: #374151; font-size: 0.875rem; font-weight: 500; }
-    .back-btn:hover { background: #e5e7eb; }
-    main { max-width: 900px; margin: 0 auto; padding: 48px 20px; }
-    .hero { text-align: center; margin-bottom: 48px; }
-    .hero h2 { font-size: 2.5rem; font-weight: 700; color: #111; margin-bottom: 16px; }
-    .hero p { font-size: 1.1rem; color: #666; max-width: 600px; margin: 0 auto; }
-    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
-    @media (max-width: 640px) { .features { grid-template-columns: 1fr; } }
-    .feature-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; text-align: center; transition: box-shadow 0.2s; }
-    .feature-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-    .feature-icon { font-size: 2rem; margin-bottom: 12px; }
-    .feature-card h3 { font-size: 1rem; font-weight: 600; color: #111; margin-bottom: 8px; }
-    .feature-card p { font-size: 0.875rem; color: #666; }
-    .converter { background: #fff; border: 1px solid #e5e7eb; border-radius: 20px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); margin-bottom: 48px; }
-    .converter h3 { font-size: 1.25rem; font-weight: 700; color: #111; margin-bottom: 24px; }
-    label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 8px; }
-    input[type="url"], input[type="text"] { width: 100%; padding: 14px 16px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 1rem; margin-bottom: 16px; }
-    input:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
-    .btn-generate { width: 100%; padding: 14px; background: #f97316; color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-generate:hover { background: #ea580c; }
-    .btn-generate:active { transform: scale(0.98); }
-    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
-    .output { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; min-height: 100vh; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; }
+    header { border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); backdrop-filter: blur(12px); }
+    .header-inner { max-width: 800px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+    .header-logo { font-size: 28px; }
+    .header-title { font-size: 1.25rem; font-weight: 700; }
+    .header-sub { font-size: 0.75rem; color: rgba(255,255,255,0.6); }
+    .back-btn { margin-left: auto; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px; text-decoration: none; color: #fff; font-size: 0.875rem; }
+    .back-btn:hover { background: rgba(255,255,255,0.2); }
+    main { max-width: 800px; margin: 0 auto; padding: 48px 20px; }
+    .hero { text-align: center; margin-bottom: 40px; }
+    .hero h2 { font-size: 2rem; font-weight: 700; margin-bottom: 12px; background: linear-gradient(90deg, #ffd700, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.7); max-width: 500px; margin: 0 auto; }
+    .converter { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 32px; margin-bottom: 32px; }
+    .step-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .step-box.fb { border-color: rgba(24,119,242,0.5); background: rgba(24,119,242,0.1); }
+    .step-box.shopee { border-color: rgba(238,77,45,0.5); background: rgba(238,77,45,0.1); }
+    .step-label { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .step-num { width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 700; }
+    .step-box.fb .step-num { background: #1877f2; }
+    .step-box.shopee .step-num { background: #ee4d2d; }
+    .step-title { font-weight: 600; font-size: 0.95rem; }
+    .step-hint { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 8px; }
+    input[type="url"] { width: 100%; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; font-size: 1rem; background: rgba(0,0,0,0.3); color: #fff; }
+    input:focus { outline: none; border-color: #ffd700; }
+    input::placeholder { color: rgba(255,255,255,0.4); }
+    .btn-generate { width: 100%; padding: 16px; background: linear-gradient(90deg, #ffd700, #ffaa00); color: #000; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+    .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,215,0,0.3); }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .output { margin-top: 24px; padding: 20px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); border-radius: 16px; }
+    .output-label { color: #22c55e; font-weight: 600; margin-bottom: 12px; display: block; }
     .output-row { display: flex; gap: 12px; }
-    .output-row input { flex: 1; font-family: ui-monospace, monospace; font-size: 0.875rem; background: #f9fafb; }
-    .btn-copy { padding: 14px 24px; background: #e5e7eb; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-    .btn-copy:hover { background: #d1d5db; }
-    .btn-copy.copied { background: #dcfce7; color: #166534; }
-    .tip { margin-top: 16px; padding: 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; }
-    .tip p { font-size: 0.875rem; color: #9a3412; }
-    .tip strong { color: #c2410c; }
-    .error { color: #dc2626; font-size: 0.875rem; margin-top: -8px; margin-bottom: 16px; }
-    .history { background: #fff; border: 1px solid #e5e7eb; border-radius: 20px; padding: 32px; }
-    .history-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-    .history h3 { font-size: 1.25rem; font-weight: 700; color: #111; }
-    .history-toggle { font-size: 1.25rem; color: #666; transition: transform 0.2s; }
-    .history-toggle.open { transform: rotate(180deg); }
-    .history-list { margin-top: 20px; }
-    .history-item { display: flex; align-items: center; gap: 12px; padding: 16px; background: #f9fafb; border-radius: 12px; margin-bottom: 12px; }
-    .history-item-url { flex: 1; font-family: ui-monospace, monospace; font-size: 0.75rem; color: #374151; word-break: break-all; }
-    .history-item-time { font-size: 0.75rem; color: #9ca3af; }
-    .history-btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
-    .history-btn-copy { background: #f3f4f6; color: #374151; }
-    .history-btn-copy:hover { background: #e5e7eb; }
-    .history-btn-del { background: transparent; color: #dc2626; }
-    .history-btn-del:hover { background: #fef2f2; }
-    .instructions { margin-top: 48px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 32px; }
-    .instructions h3 { font-size: 1.1rem; font-weight: 700; color: #1e40af; margin-bottom: 16px; }
+    .output-row input { flex: 1; background: rgba(0,0,0,0.4); border-color: rgba(34,197,94,0.3); }
+    .btn-copy { padding: 14px 24px; background: #22c55e; color: #fff; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn-copy:hover { background: #16a34a; }
+    .output-tip { margin-top: 12px; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+    .error { color: #ef4444; font-size: 0.875rem; margin-top: 8px; padding: 12px; background: rgba(239,68,68,0.1); border-radius: 8px; }
+    .instructions { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 28px; }
+    .instructions h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #ffd700; }
     .instructions ol { padding-left: 0; list-style: none; }
-    .instructions li { display: flex; gap: 12px; margin-bottom: 12px; font-size: 0.9rem; color: #1e40af; }
-    .step-num { width: 24px; height: 24px; background: #3b82f6; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; flex-shrink: 0; }
-    footer { border-top: 1px solid #e5e7eb; background: #f9fafb; padding: 32px 20px; text-align: center; margin-top: 48px; }
-    footer p { font-size: 0.875rem; color: #6b7280; }
-    .hide { display: none; }
+    .instructions li { display: flex; gap: 12px; margin-bottom: 16px; font-size: 0.9rem; color: rgba(255,255,255,0.8); }
+    .instr-num { width: 24px; height: 24px; background: rgba(255,215,0,0.2); color: #ffd700; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .hide { display: none !important; }
+    footer { border-top: 1px solid rgba(255,255,255,0.1); padding: 24px 20px; text-align: center; margin-top: 48px; }
+    footer p { font-size: 0.8rem; color: rgba(255,255,255,0.4); }
   </style>
 </head>
 <body>
   <header>
     <div class="header-inner">
-      <div class="header-logo">🛒</div>
+      <div class="header-logo">👑</div>
       <div>
-        <div class="header-title">Shopee Link Master</div>
-        <div class="header-sub">Convert affiliate links for Facebook sharing</div>
+        <div class="header-title">Link Master</div>
+        <div class="header-sub">Facebook Post + Shopee Affiliate</div>
       </div>
       <a href="/" class="back-btn">← Back</a>
     </div>
@@ -162,159 +148,134 @@ app.get('/link-master', (req, res) => {
 
   <main>
     <div class="hero">
-      <h2>Create Facebook-Safe Shopee Links</h2>
-      <p>Convert your Shopee affiliate links to open directly in the Shopee app without triggering external link warnings on Facebook.</p>
-    </div>
-
-    <div class="features">
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>Instant Conversion</h3>
-        <p>Convert links in seconds</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <h3>Safe Sharing</h3>
-        <p>No external warnings on Facebook</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📱</div>
-        <h3>App Direct</h3>
-        <p>Opens directly in Shopee app</p>
-      </div>
+      <h2>Create Powerful Affiliate Links</h2>
+      <p>Combine Facebook post preview with Shopee affiliate redirect. Maximum engagement, maximum conversions!</p>
     </div>
 
     <div class="converter">
-      <h3>Generate Your Link</h3>
-      <label for="shopee-url">Shopee Link</label>
-      <input type="url" id="shopee-url" placeholder="Paste your Shopee affiliate link here..." />
+      <div class="step-box fb">
+        <div class="step-label">
+          <span class="step-num">1</span>
+          <span class="step-title">📘 Facebook Post URL</span>
+        </div>
+        <input type="url" id="fb-url" placeholder="https://www.facebook.com/..." />
+        <div class="step-hint">Paste your Facebook post URL (this will show as preview when shared)</div>
+      </div>
+      
+      <div class="step-box shopee">
+        <div class="step-label">
+          <span class="step-num">2</span>
+          <span class="step-title">🛒 Shopee Affiliate URL</span>
+        </div>
+        <input type="url" id="shopee-url" placeholder="https://shopee.com.my/... or https://s.shopee.com.my/..." />
+        <div class="step-hint">This is where users will go (opens Shopee app directly!)</div>
+      </div>
+      
       <div id="error-msg" class="error hide"></div>
-      <button class="btn-generate" id="btn-generate">Generate Facebook-Safe Link</button>
+      <button class="btn-generate" id="btn-generate">👑 Create Link Master</button>
       
       <div id="output" class="output hide">
-        <label>Your Facebook-Safe Link</label>
+        <span class="output-label">✅ Link Master Ready!</span>
         <div class="output-row">
-          <input type="text" id="generated-url" readonly />
-          <button class="btn-copy" id="btn-copy">Copy</button>
+          <input type="url" id="generated-url" readonly />
+          <button class="btn-copy" id="btn-copy">📋 Copy</button>
         </div>
-        <p style="font-size: 0.75rem; color: #666; margin-top: 8px;">Share this link on Facebook - it bypasses external link warnings</p>
-        <div class="tip">
-          <p><strong>💡 How it works:</strong> This link redirects through our domain to open the Shopee app on your phone (if installed). Facebook won't show a warning since the link appears to be internal.</p>
-        </div>
+        <div class="output-tip">📱 Share anywhere - Shows Facebook preview → Opens Shopee app!</div>
       </div>
-    </div>
-
-    <div class="history" id="history-section">
-      <div class="history-header" id="history-toggle">
-        <h3>Recent Links (<span id="history-count">0</span>)</h3>
-        <span class="history-toggle" id="history-arrow">▼</span>
-      </div>
-      <div class="history-list hide" id="history-list"></div>
     </div>
 
     <div class="instructions">
-      <h3>How to Use</h3>
+      <h3>📋 How Link Master Works</h3>
       <ol>
-        <li><span class="step-num">1</span><span>Paste your Shopee affiliate link in the input field above</span></li>
-        <li><span class="step-num">2</span><span>Click "Generate Facebook-Safe Link" to create your converted link</span></li>
-        <li><span class="step-num">3</span><span>Copy the generated link using the Copy button</span></li>
-        <li><span class="step-num">4</span><span>Share the link on Facebook - it will open directly in Shopee app!</span></li>
+        <li><span class="instr-num">1</span><span><strong>Post on Facebook</strong> - Create a product post on your Facebook page</span></li>
+        <li><span class="instr-num">2</span><span><strong>Copy Facebook URL</strong> - Get the URL of your Facebook post</span></li>
+        <li><span class="instr-num">3</span><span><strong>Create Link Master</strong> - Paste Facebook URL + Shopee affiliate link above</span></li>
+        <li><span class="instr-num">4</span><span><strong>Share & Profit!</strong> - Share your Link Master URL. Users see Facebook preview but land in Shopee app!</span></li>
       </ol>
     </div>
   </main>
 
   <footer>
-    <p>© 2024 Shopee Link Master. Created to help your Shopee affiliate business grow.</p>
+    <p>© 2024 Link Master. Maximize your Shopee affiliate conversions.</p>
   </footer>
 
   <script>
-    let linkHistory = JSON.parse(localStorage.getItem('shopee_link_history') || '[]');
-
-    const inputEl = document.getElementById('shopee-url');
+    const fbInput = document.getElementById('fb-url');
+    const shopeeInput = document.getElementById('shopee-url');
     const btnGenerate = document.getElementById('btn-generate');
     const outputEl = document.getElementById('output');
     const generatedEl = document.getElementById('generated-url');
     const btnCopy = document.getElementById('btn-copy');
     const errorEl = document.getElementById('error-msg');
-    const historyToggle = document.getElementById('history-toggle');
-    const historyList = document.getElementById('history-list');
-    const historyCount = document.getElementById('history-count');
-    const historyArrow = document.getElementById('history-arrow');
 
-    function updateHistoryUI() {
-      historyCount.textContent = linkHistory.length;
-      if (linkHistory.length === 0) {
-        document.getElementById('history-section').classList.add('hide');
-        return;
-      }
-      document.getElementById('history-section').classList.remove('hide');
-      historyList.innerHTML = linkHistory.map(item => \`
-        <div class="history-item" data-id="\${item.id}">
-          <div class="history-item-url">\${item.generatedUrl}</div>
-          <div class="history-item-time">\${new Date(item.createdAt).toLocaleTimeString()}</div>
-          <button class="history-btn history-btn-copy" onclick="copyHistoryItem('\${item.generatedUrl}')">Copy</button>
-          <button class="history-btn history-btn-del" onclick="deleteHistoryItem('\${item.id}')">Delete</button>
-        </div>
-      \`).join('');
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.remove('hide');
     }
-
-    function copyHistoryItem(url) {
-      navigator.clipboard.writeText(url);
-    }
-
-    function deleteHistoryItem(id) {
-      linkHistory = linkHistory.filter(item => item.id !== id);
-      localStorage.setItem('shopee_link_history', JSON.stringify(linkHistory));
-      updateHistoryUI();
-    }
-
-    historyToggle.addEventListener('click', () => {
-      historyList.classList.toggle('hide');
-      historyArrow.classList.toggle('open');
-    });
-
-    btnGenerate.addEventListener('click', () => {
+    
+    function hideError() {
       errorEl.classList.add('hide');
+    }
+
+    btnGenerate.addEventListener('click', async () => {
+      hideError();
       outputEl.classList.add('hide');
-      const url = inputEl.value.trim();
-      if (!url) {
-        errorEl.textContent = 'Please enter a Shopee link';
-        errorEl.classList.remove('hide');
-        return;
-      }
-      if (!url.includes('shopee.') && !url.includes('shp.ee') && !url.includes('s.shopee')) {
-        errorEl.textContent = 'Please enter a valid Shopee link';
-        errorEl.classList.remove('hide');
-        return;
-      }
-      const encoded = encodeURIComponent(url);
-      const generated = window.location.origin + '/go?url=' + encoded;
-      generatedEl.value = generated;
-      outputEl.classList.remove('hide');
       
-      const historyItem = {
-        id: Date.now().toString(),
-        originalUrl: url,
-        generatedUrl: generated,
-        createdAt: new Date().toISOString()
-      };
-      linkHistory = [historyItem, ...linkHistory.slice(0, 49)];
-      localStorage.setItem('shopee_link_history', JSON.stringify(linkHistory));
-      updateHistoryUI();
-      inputEl.value = '';
+      const fbUrl = fbInput.value.trim();
+      const shopeeUrl = shopeeInput.value.trim();
+      
+      if (!fbUrl) {
+        showError('Please enter your Facebook post URL');
+        return;
+      }
+      
+      if (!fbUrl.includes('facebook.com') && !fbUrl.includes('fb.com') && !fbUrl.includes('fb.me')) {
+        showError('Please enter a valid Facebook URL');
+        return;
+      }
+      
+      if (!shopeeUrl) {
+        showError('Please enter your Shopee affiliate URL');
+        return;
+      }
+      
+      if (!shopeeUrl.includes('shopee')) {
+        showError('Please enter a valid Shopee URL');
+        return;
+      }
+      
+      btnGenerate.disabled = true;
+      btnGenerate.textContent = '⏳ Creating...';
+      
+      try {
+        const res = await fetch('/api/link-master', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ facebook_url: fbUrl, shopee_url: shopeeUrl })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to create link');
+        }
+        
+        generatedEl.value = data.url;
+        outputEl.classList.remove('hide');
+        
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.textContent = '👑 Create Link Master';
+      }
     });
 
     btnCopy.addEventListener('click', () => {
       navigator.clipboard.writeText(generatedEl.value);
       btnCopy.textContent = '✓ Copied!';
-      btnCopy.classList.add('copied');
-      setTimeout(() => {
-        btnCopy.textContent = 'Copy';
-        btnCopy.classList.remove('copied');
-      }, 2000);
+      setTimeout(() => { btnCopy.textContent = '📋 Copy'; }, 2000);
     });
-
-    updateHistoryUI();
   </script>
 </body>
 </html>`)
@@ -1228,6 +1189,65 @@ Allow: /
 User-agent: *
 Allow: /
 `)
+})
+
+// Public Link Master API (no auth required)
+app.post('/api/link-master', async (req, res) => {
+  try {
+    const { facebook_url, shopee_url } = req.body
+    
+    if (!facebook_url || !shopee_url) {
+      return res.status(400).json({ error: 'Both facebook_url and shopee_url are required' })
+    }
+    
+    if (!facebook_url.includes('facebook.com') && !facebook_url.includes('fb.com') && !facebook_url.includes('fb.me')) {
+      return res.status(400).json({ error: 'Invalid Facebook URL' })
+    }
+    
+    if (!shopee_url.includes('shopee')) {
+      return res.status(400).json({ error: 'Invalid Shopee URL' })
+    }
+    
+    const slugLength = 7
+    let link
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const slug = nanoid(slugLength)
+        link = await createLink({
+          slug,
+          title: 'Link Master',
+          og_title: 'Shopee Deal',
+          og_description: 'Tap to view this amazing deal!',
+          og_image_url: null,
+          is_active: true,
+          mode: 'single',
+          primary_url: shopee_url,
+          facebook_url: facebook_url,
+          android_url: null,
+          ios_url: null,
+          desktop_url: null,
+          utm_defaults: {},
+        })
+        break
+      } catch (err) {
+        const code = err && typeof err === 'object' && 'code' in err ? err.code : null
+        if (code === '23505' && attempt < 4) continue
+        throw err
+      }
+    }
+    
+    if (!link) {
+      return res.status(500).json({ error: 'Failed to generate unique slug' })
+    }
+    
+    const baseUrl = process.env.BASE_URL || 'https://see--moor.re'
+    const url = baseUrl + '/go/' + link.slug
+    
+    return res.status(201).json({ url, slug: link.slug })
+  } catch (e) {
+    console.error('Link Master error:', e)
+    return res.status(500).json({ error: 'Failed to create link' })
+  }
 })
 
 app.use('/api/links', linksRouter)
