@@ -91,6 +91,17 @@ function renderOgPreviewHtml({ title, description, imageUrl, canonicalUrl, desti
   const safeDestination = escapeHtml(destinationUrl || '')
   const safeImage = imageUrl ? escapeHtml(imageUrl) : ''
 
+  // Detect image type from URL extension
+  const getImageType = (url) => {
+    if (!url) return 'image/jpeg'
+    const lower = url.toLowerCase()
+    if (lower.includes('.png')) return 'image/png'
+    if (lower.includes('.webp')) return 'image/webp'
+    if (lower.includes('.gif')) return 'image/gif'
+    return 'image/jpeg'
+  }
+  const imageType = getImageType(imageUrl)
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -102,9 +113,12 @@ function renderOgPreviewHtml({ title, description, imageUrl, canonicalUrl, desti
   <meta property="og:description" content="${safeDescription}" />
   <meta property="og:url" content="${safeCanonical}" />
   ${safeImage ? `<meta property="og:image" content="${safeImage}" />
+  <meta property="og:image:secure_url" content="${safeImage}" />
+  <meta property="og:image:url" content="${safeImage}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:type" content="image/jpeg" />` : ''}
+  <meta property="og:image:type" content="${imageType}" />
+  <meta property="og:image:alt" content="${safeTitle}" />` : ''}
   <meta name="twitter:card" content="${safeImage ? 'summary_large_image' : 'summary'}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDescription}" />
@@ -536,12 +550,17 @@ redirectRouter.get('/go/:slug', async (req, res) => {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Opening ${escapeHtml(appConfig.name)}...</title>
+  <meta property="og:type" content="website" />
   <meta property="og:title" content="${escapeHtml(link.og_title || appConfig.name + ' Link')}" />
   <meta property="og:description" content="${escapeHtml(link.og_description || 'Tap to open in ' + appConfig.name + ' app')}" />
   <meta property="og:url" content="${escapeHtml(ogUrl)}" />
   ${link.og_image_url ? `<meta property="og:image" content="${escapeHtml(link.og_image_url)}" />
+  <meta property="og:image:secure_url" content="${escapeHtml(link.og_image_url)}" />
+  <meta property="og:image:url" content="${escapeHtml(link.og_image_url)}" />
   <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />` : ''}
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="${link.og_image_url.toLowerCase().includes('.png') ? 'image/png' : link.og_image_url.toLowerCase().includes('.webp') ? 'image/webp' : 'image/jpeg'}" />
+  <meta property="og:image:alt" content="${escapeHtml(link.og_title || appConfig.name + ' Link')}" />` : ''}
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; background: linear-gradient(135deg, ${appConfig.color1} 0%, ${appConfig.color2} 100%); display: flex; align-items: center; justify-content: center; }

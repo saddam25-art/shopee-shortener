@@ -5,9 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
+    "dev:local": "node --watch src/index-local.js",
     "start": "node src/index.js",
+    "start:local": "node src/index-local.js",
     "build:bundle": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && node ./node_modules/esbuild/bin/esbuild src/index.js --platform=node --bundle --format=cjs --outfile=dist/server.cjs",
-    "build:exe": "npm run build:bundle && node ./node_modules/pkg/lib-es5/bin.js dist/server.cjs --targets node18-win-x64 --output dist/shopee-shortener.exe"
+    "build:bundle:local": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && node ./node_modules/esbuild/bin/esbuild src/index-local.js --platform=node --bundle --format=cjs --external:better-sqlite3 --outfile=dist/server-local.cjs",
+    "build:exe": "npm run build:bundle && node ./node_modules/pkg/lib-es5/bin.js dist/server.cjs --targets node18-win-x64 --output dist/SADDAM_Shortlink.exe",
+    "build:exe:local": "npm run build:bundle:local && node ./node_modules/pkg/lib-es5/bin.js dist/server-local.cjs --targets node18-win-x64 --output dist/SADDAM_Shortlink_Local.exe"
   },
   "devDependencies": {
     "esbuild": "^0.25.12",
@@ -16,13 +20,17 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.86.2",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.5.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "nanoid": "^5.0.7",
+    "node-machine-id": "^1.1.12",
     "ua-parser-js": "^1.0.39",
+    "uuid": "^13.0.0",
     "zod": "^3.23.8"
   }
 }

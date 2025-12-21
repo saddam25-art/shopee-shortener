@@ -1,0 +1,13 @@
+How to use:
+
+Copy the entire SADDAM_Shortlink_Local folder anywhere
+Double-click START.bat
+Open http://localhost:8080 in browser
+All data stored in data\ folder (auto-created)
+
+Features:
+
+💾 Local SQLite database - no Supabase needed
+🖼️ Local image storage - saved to data\images\
+🔒 Works offline - no internet required
+⚡ Same features - Link Master, Admin Panel, deep linking

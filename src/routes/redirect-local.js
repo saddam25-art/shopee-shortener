@@ -68,12 +68,16 @@ redirectRouterLocal.get('/:slug', async (req, res) => {
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta property="og:type" content="website" />
   <meta property="og:title" content="${link.og_title || 'Shopee'}" />
   <meta property="og:description" content="${link.og_description || ''}" />
   ${link.og_image_url ? `<meta property="og:image" content="${link.og_image_url}" />
+  <meta property="og:image:secure_url" content="${link.og_image_url}" />
+  <meta property="og:image:url" content="${link.og_image_url}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:type" content="image/jpeg" />` : ''}
+  <meta property="og:image:type" content="${link.og_image_url.toLowerCase().includes('.png') ? 'image/png' : link.og_image_url.toLowerCase().includes('.webp') ? 'image/webp' : 'image/jpeg'}" />
+  <meta property="og:image:alt" content="${link.og_title || 'Shopee'}" />` : ''}
   <meta property="og:url" content="${link.default_url}" />
   <meta http-equiv="refresh" content="0;url=${link.default_url}" />
 </head>

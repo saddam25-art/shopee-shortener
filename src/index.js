@@ -19,6 +19,41 @@ app.use(cors())
 app.use(cookieParser())
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '6mb' }))
 
+// robots.txt - Allow social media crawlers for OG previews
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain')
+  return res.status(200).send(`User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: Pinterest
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: *
+Allow: /
+`)
+})
+
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   return res.status(200).send(`<!doctype html>
@@ -1447,7 +1482,7 @@ app.post('/api/shortlink', async (req, res) => {
           utm_defaults: {},
         })
         
-        const baseUrl = process.env.BASE_URL || 'https://see--moor.re'
+        const baseUrl = process.env.BASE_URL || 'https://shortlink.mindpilot.online'
         const resultUrl = baseUrl + '/' + link.slug
         return res.status(201).json({ url: resultUrl, slug: link.slug })
       } catch (err) {
@@ -1492,7 +1527,7 @@ app.post('/api/shortlink', async (req, res) => {
       return res.status(500).json({ error: 'Failed to generate unique slug' })
     }
     
-    const baseUrl = process.env.BASE_URL || 'https://see--moor.re'
+    const baseUrl = process.env.BASE_URL || 'https://shortlink.mindpilot.online'
     const resultUrl = baseUrl + '/' + link.slug
     
     return res.status(201).json({ url: resultUrl, slug: link.slug })
@@ -1551,7 +1586,7 @@ app.post('/api/link-master', async (req, res) => {
       return res.status(500).json({ error: 'Failed to generate unique slug' })
     }
     
-    const baseUrl = process.env.BASE_URL || 'https://see--moor.re'
+    const baseUrl = process.env.BASE_URL || 'https://shortlink.mindpilot.online'
     const url = baseUrl + '/go/' + link.slug
     
     return res.status(201).json({ url, slug: link.slug })
