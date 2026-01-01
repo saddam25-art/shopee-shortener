@@ -599,6 +599,101 @@ app.get('/go', (req, res) => {
 </html>`);
 })
 
+// Google OAuth callback handler
+app.get('/auth/callback', async (req, res) => {
+  const { access_token, refresh_token } = req.query;
+  
+  if (access_token) {
+    // Set cookie and redirect to admin
+    res.cookie('sb-access-token', access_token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    if (refresh_token) {
+      res.cookie('sb-refresh-token', refresh_token, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
+    }
+    return res.redirect('/admin');
+  }
+  
+  // Handle hash fragment (tokens in URL hash)
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html>
+<head><title>Authenticating...</title></head>
+<body>
+<script>
+  // Extract tokens from hash fragment
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  
+  if (accessToken) {
+    // Send tokens to server to set cookies
+    fetch('/auth/set-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+      credentials: 'include'
+    }).then(() => {
+      window.location.href = '/admin';
+    }).catch(() => {
+      window.location.href = '/admin';
+    });
+  } else {
+    window.location.href = '/admin';
+  }
+</script>
+<p>Authenticating... Please wait.</p>
+</body>
+</html>`);
+});
+
+// Set session from Google OAuth tokens
+app.post('/auth/set-session', express.json(), async (req, res) => {
+  const { access_token, refresh_token } = req.body;
+  
+  if (!access_token) {
+    return res.status(400).json({ error: 'Missing access_token' });
+  }
+  
+  try {
+    // Verify token with Supabase and get user info
+    const { supabase } = await import('./supabase.js');
+    const { data: { user }, error } = await supabase.auth.getUser(access_token);
+    
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    // Create or get user in our database
+    const { getUserByEmail, createUser } = await import('./db/users.js');
+    let dbUser = await getUserByEmail(user.email);
+    
+    if (!dbUser) {
+      // Create new user from Google account
+      const username = user.email.split('@')[0] + '_' + Date.now().toString(36);
+      dbUser = await createUser({
+        username,
+        email: user.email,
+        password_hash: 'google_oauth_' + Date.now(), // Placeholder, not used for OAuth
+        is_admin: false
+      });
+    }
+    
+    // Generate JWT for our app
+    const jwt = await import('jsonwebtoken');
+    const token = jwt.default.sign(
+      { userId: dbUser.id, username: dbUser.username },
+      process.env.AUTH_JWT_SECRET || process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    res.cookie('auth_token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    return res.json({ success: true, user: { id: dbUser.id, username: dbUser.username } });
+  } catch (e) {
+    console.error('OAuth session error:', e);
+    return res.status(500).json({ error: 'Failed to set session' });
+  }
+});
+
 app.get('/admin', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   return res.status(200).send(`<!doctype html>
@@ -663,6 +758,12 @@ app.get('/admin', (req, res) => {
               <button id="login" class="primary" type="button">Login</button>
               <button id="register" type="button">Register</button>
               <span class="muted">Public register enabled.</span>
+            </div>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.12);">
+              <button id="googleLogin" type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: #fff; color: #333; border-radius: 12px; font-weight: 600;">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Sign in with Google
+              </button>
             </div>
             <span id="authStatus" class="status"></span>
           </div>
@@ -921,6 +1022,10 @@ app.get('/admin', (req, res) => {
     $('create').addEventListener('click', createLink);
     $('login').addEventListener('click', () => loginOrRegister('login'));
     $('register').addEventListener('click', () => loginOrRegister('register'));
+    $('googleLogin').addEventListener('click', () => {
+      const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback');
+      window.location.href = 'https://glmujwzavinmeanfrlre.supabase.co/auth/v1/authorize?provider=google&redirect_to=' + redirectUrl;
+    });
     $('logout').addEventListener('click', async () => {
       try {
         await api('/api/auth/logout', { method: 'POST' });
